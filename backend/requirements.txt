@@ -1,0 +1,7 @@
+google-cloud-aiplatform
+google-auth
+pillow
+requests
+python-dotenv
+cloudinary
+google-adk
