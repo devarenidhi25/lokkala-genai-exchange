@@ -33,19 +33,6 @@ export default function CaptionGenerator() {
   const [error, setError] = useState("")
   const [result, setResult] = useState(null) // { variations: [...], marketing_tips: [...] }
 
-  // convert file -> base64 (strip data URL prefix)
-  const fileToBase64 = (file) =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const dataUrl = reader.result
-        const base64 = dataUrl.split(",")[1]
-        resolve(base64)
-      }
-      reader.onerror = reject
-      reader.readAsDataURL(file)
-    })
-
   const handleFileChange = (e) => {
     const f = e.target.files?.[0] || null
     setImageFile(f)
@@ -62,24 +49,21 @@ export default function CaptionGenerator() {
     setLoading(true)
 
     try {
-      let imageBase64 = null
-      if (imageFile) {
-        imageBase64 = await fileToBase64(imageFile)
+      // Check if we have an image file
+      if (!imageFile) {
+        throw new Error("Please upload an image file")
       }
 
-      const payload = {
-        prompt,
-        imageBase64,
-        tone: "heritage-focused",
-      }
+      // Create FormData to send the file
+      const formData = new FormData()
+      formData.append('image', imageFile, imageFile.name)
 
-      const res = await fetch(`${BACKEND_URL}/api/generate-caption`, {
-
+      // Fixed endpoint URL to match backend
+      const res = await fetch(`${BACKEND_URL}/caption/generate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: formData,
+        // Don't set Content-Type header - let browser set it with boundary for FormData
       })
-
 
       if (!res.ok) {
         const text = await res.text()
@@ -89,23 +73,21 @@ export default function CaptionGenerator() {
       const body = await res.json()
       if (!body.success) throw new Error(body.error || "Failed to generate captions")
 
-      const data = body.data
-
-      // normalize: some responses may return {variations:..., marketing_tips:...} or raw text
-      if (data.variations) {
-        setResult(data)
-      } else if (Array.isArray(data)) {
-        // older format – map to our shape
-        setResult({ variations: data, marketing_tips: [] })
-      } else if (data.raw_text) {
-        // server couldn't parse JSON from model; show raw text as a single suggestion
-        setResult({
-          variations: [{ short: data.raw_text.slice(0, 200), long: data.raw_text, hashtags: [], post_sample: data.raw_text }],
-          marketing_tips: [],
-        })
-      } else {
-        setResult({ variations: [{ short: "No captions returned", long: "", hashtags: [], post_sample: "" }], marketing_tips: [] })
-      }
+      // Adapt the backend response to frontend format
+      const caption = body.caption || "No caption generated"
+      const postResult = body.post_result || "No post result"
+      
+      // Create variations array to match existing UI
+      setResult({
+        variations: [{
+          short: caption,
+          long: caption,
+          hashtags: [], // Backend doesn't return hashtags, so empty array
+          post_sample: caption
+        }],
+        marketing_tips: postResult ? [postResult] : []
+      })
+      
     } catch (err) {
       setError(err.message || String(err))
     } finally {
@@ -141,7 +123,7 @@ export default function CaptionGenerator() {
 
       <div style={styles.fileRow}>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", fontSize: 13, color: "#374151", marginBottom: 6 }}>Upload product image (optional)</label>
+          <label style={{ display: "block", fontSize: 13, color: "#374151", marginBottom: 6 }}>Upload product image (required)</label>
           <input type="file" accept="image/*" onChange={handleFileChange} />
           <div style={styles.smallMuted}>Tip: a clean single-product photo works best.</div>
         </div>
@@ -149,7 +131,7 @@ export default function CaptionGenerator() {
         {imagePreview ? <img src={imagePreview} alt="preview" style={styles.preview} /> : null}
       </div>
 
-      <button style={styles.button} onClick={onGenerate} disabled={loading}>
+      <button style={styles.button} onClick={onGenerate} disabled={loading || !imageFile}>
         {loading ? "Generating..." : "Generate Captions & Marketing Tips"}
       </button>
 
@@ -169,7 +151,7 @@ export default function CaptionGenerator() {
               <div key={idx} style={styles.captionCard}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
                   <div>
-                    <div style={{ fontWeight: 700, color: "#0f172a" }}>Suggestion #{idx + 1}</div>
+                    <div style={{ fontWeight: 700, color: "#0f172a" }}>Generated Caption</div>
                     <div style={{ marginTop: 8, color: "#0b1227" }}>{v.short || v.post_sample || v.long}</div>
                     {v.hashtags && v.hashtags.length > 0 && (
                       <div style={{ marginTop: 10 }}>
@@ -197,7 +179,7 @@ export default function CaptionGenerator() {
 
           {result.marketing_tips && result.marketing_tips.length > 0 && (
             <div style={{ marginTop: 18 }}>
-              <div style={{ fontWeight: 700, marginBottom: 8 }}>📈 Quick marketing tips</div>
+              <div style={{ fontWeight: 700, marginBottom: 8 }}>📈 Instagram Post Result</div>
               <ul style={{ color: "#334155" }}>
                 {result.marketing_tips.map((t, i) => (
                   <li key={i} style={{ marginBottom: 6 }}>
