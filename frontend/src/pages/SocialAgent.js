@@ -16,7 +16,7 @@ function SocialAgent() {
     setLoading(true)
     setCompleted(false) // reset before starting
     try {
-      const res = await axios.post(`${BACKEND_URL}/social-agent`, {
+      const res = await axios.post(`${BACKEND_URL}/caption/generate`, {
         image_path: imagePath
       })
 
