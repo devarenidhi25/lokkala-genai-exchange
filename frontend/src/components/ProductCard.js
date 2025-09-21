@@ -24,6 +24,10 @@ function ProductCard({ product }) {
             <div className="small text-muted">
               ₹{product.price} • {product.state}
             </div>
+            {/* ✅ Add artisan name below price/state */}
+            {product.artisan && (
+              <div className="small text-gray-700">By: {product.artisan}</div>
+            )}
           </div>
           <div className="badge">{product.category}</div>
         </div>

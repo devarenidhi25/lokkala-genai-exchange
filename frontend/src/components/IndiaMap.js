@@ -1,153 +1,187 @@
-"use client";
-import React, { useState, useRef, useEffect } from "react";
-import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
+import React, { useEffect, useState } from "react";
+import { MapContainer, TileLayer, GeoJSON, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
-// Raw GitHub link for Subhash9325 GeoJSON
-const INDIA_GEO_JSON =
-  "https://raw.githubusercontent.com/Subhash9325/GeoJson-Data-of-Indian-States/master/Indian_States/states.geojson";
+const INDIA_STATES = [
+  "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh",
+  "Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka",
+  "Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram",
+  "Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana",
+  "Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Andaman and Nicobar Islands",
+  "Chandigarh","Dadra and Nagar Haveli and Daman and Diu","Delhi","Jammu and Kashmir",
+  "Ladakh","Lakshadweep","Puducherry"
+];
 
-function IndiaMap({ onSelectState }) {
-  const [position, setPosition] = useState({ coordinates: [82.8, 22.6], zoom: 1 });
-  const [tooltip, setTooltip] = useState({ name: "", x: 0, y: 0, show: false });
-  const [search, setSearch] = useState("");
-  const [features, setFeatures] = useState([]);
-  const geographiesRef = useRef([]);
+// Default lat/lng for each state to show marker
+const STATE_COORDS = {
+  "Andhra Pradesh": [15.9129, 79.74],
+  "Arunachal Pradesh": [28.2180, 94.7278],
+  "Assam": [26.2006, 92.9376],
+  "Bihar": [25.0961, 85.3131],
+  "Chhattisgarh": [21.2787, 81.8661],
+  "Goa": [15.2993, 74.1240],
+  "Gujarat": [22.2587, 71.1924],
+  "Haryana": [29.0588, 76.0856],
+  "Himachal Pradesh": [31.1048, 77.1734],
+  "Jharkhand": [23.6102, 85.2799],
+  "Karnataka": [15.3173, 75.7139],
+  "Kerala": [10.8505, 76.2711],
+  "Madhya Pradesh": [22.9734, 78.6569],
+  "Maharashtra": [19.7515, 75.7139],
+  "Manipur": [24.6637, 93.9063],
+  "Meghalaya": [25.4670, 91.3662],
+  "Mizoram": [23.1645, 92.9376],
+  "Nagaland": [26.1584, 94.5624],
+  "Odisha": [20.9517, 85.0985],
+  "Punjab": [31.1471, 75.3412],
+  "Rajasthan": [27.0238, 74.2179],
+  "Sikkim": [27.5330, 88.5122],
+  "Tamil Nadu": [11.1271, 78.6569],
+  "Telangana": [18.1124, 79.0193],
+  "Tripura": [23.9408, 91.9882],
+  "Uttar Pradesh": [26.8467, 80.9462],
+  "Uttarakhand": [30.0668, 79.0193],
+  "West Bengal": [22.9868, 87.8550],
+  "Andaman and Nicobar Islands": [11.7401, 92.6586],
+  "Chandigarh": [30.7333, 76.7794],
+  "Dadra and Nagar Haveli and Daman and Diu": [20.1809, 73.0169],
+  "Delhi": [28.7041, 77.1025],
+  "Jammu and Kashmir": [33.7782, 76.5762],
+  "Ladakh": [34.1526, 77.5770],
+  "Lakshadweep": [10.5621, 72.6369],
+  "Puducherry": [11.9416, 79.8083],
+};
+
+// Pan map to selected state
+const MapPanToSelected = ({ latlng }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (latlng) map.flyTo(latlng, 6);
+  }, [latlng]);
+  return null;
+};
+
+const IndiaMap = ({ onSelectState }) => {
+  const [geoData, setGeoData] = useState(null);
+  const [selectedState, setSelectedState] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    fetch(INDIA_GEO_JSON)
+    fetch("./data/india_states.geojson")
       .then((res) => res.json())
-      .then((data) => {
-        if (data.features) {
-          setFeatures(data.features);
-        } else {
-          console.error("GeoJSON has no features:", data);
-        }
-      })
-      .catch((err) => {
-        console.error("Error loading GeoJSON:", err);
-      });
+      .then((data) => setGeoData(data))
+      .catch((err) => console.error("Error loading geojson:", err));
   }, []);
 
-  const handleZoomIn = () => {
-    if (position.zoom >= 8) return;
-    setPosition((pos) => ({ ...pos, zoom: pos.zoom * 1.5 }));
+  // Custom marker icon
+  const customIcon = new L.Icon({
+    iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+    iconSize: [25, 25],
+    iconAnchor: [12, 25],
+    popupAnchor: [0, -20],
+  });
+
+  const onEachState = (feature, layer) => {
+    const stateName = feature.properties?.st_nm;
+
+    layer.on({
+      mouseover: (e) => {
+        if (!selectedState || selectedState.name !== stateName) {
+          e.target.setStyle({ weight: 2, color: "blue", fillOpacity: 0.4 });
+        }
+      },
+      mouseout: (e) => {
+        if (!selectedState || selectedState.name !== stateName) {
+          e.target.setStyle({ weight: 1, color: "black", fillOpacity: 0.2 });
+        }
+      },
+      click: (e) => {
+        handleStateSelect(stateName, e.latlng, layer);
+      },
+    });
   };
 
-  const handleZoomOut = () => {
-    if (position.zoom <= 1) return;
-    setPosition((pos) => ({ ...pos, zoom: pos.zoom / 1.5 }));
+  const handleStateSelect = (stateName, latlng, layer = null) => {
+    if (selectedState?.layer) {
+      selectedState.layer.setStyle({ weight: 1, color: "black", fillOpacity: 0.2 });
+    }
+
+    if (layer) {
+      layer.setStyle({ weight: 3, color: "red", fillOpacity: 0.5 });
+    }
+
+    const coords = latlng || STATE_COORDS[stateName] || [22.9734, 78.6569];
+
+    setSelectedState({ name: stateName, latlng: coords, layer });
+
+    if (onSelectState) onSelectState(stateName);
   };
 
-  const handleMoveEnd = (pos) => {
-    setPosition(pos);
-  };
-
-  const handleSearch = () => {
-    const match = geographiesRef.current.find(
-      (geo) =>
-        geo.properties.st_nm?.toLowerCase() === search.trim().toLowerCase() ||
-        geo.properties.STATE?.toLowerCase() === search.trim().toLowerCase()
+  const handleSearch = (e) => {
+    e.preventDefault();
+    const stateName = INDIA_STATES.find(
+      (s) => s.toLowerCase() === searchTerm.toLowerCase()
     );
-    if (match) {
-      // compute centroid: you could use a library or GeoJSON’s geometry itself
-      // Here using bbox if available
-      if (match.bbox) {
-        const [minX, minY, maxX, maxY] = match.bbox;
-        const centroid = [(minX + maxX) / 2, (minY + maxY) / 2];
-        setPosition({ coordinates: centroid, zoom: 3 });
-      } else {
-        // fallback: just center on bounds of geometry (less precise)
-        const centroid = [
-          (position.coordinates[0] + 82.8) / 2,
-          (position.coordinates[1] + 22.6) / 2,
-        ];
-        setPosition({ coordinates: centroid, zoom: 3 });
-      }
+    if (stateName) {
+      handleStateSelect(stateName);
     } else {
-      alert("State not found. Try full, exact name (e.g., Karnataka)");
+      alert("State not found!");
     }
   };
 
   return (
-    <div className="map-wrap relative p-4 bg-white rounded-2xl shadow">
-      {/* Toolbar */}
-      <div className="flex justify-between items-center mb-2">
-        <div className="text-sm text-gray-500">Click a region to filter products</div>
-        <div className="badge px-2 py-1 bg-green-100 text-green-700 rounded">🇮🇳 India Regions</div>
+    <div style={{ height: "100vh", width: "100%" }}>
+      {/* Search Box */}
+      <div style={{ padding: "10px", background: "#f0f0f0" }}>
+        <form onSubmit={handleSearch}>
+          <input
+            type="text"
+            placeholder="Search states..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ padding: "5px", width: "200px" }}
+          />
+          <button type="submit" style={{ marginLeft: "5px", padding: "5px 10px" }}>
+            Search
+          </button>
+        </form>
       </div>
-
-      {/* Search Bar */}
-      <div className="flex mb-3">
-        <input
-          type="text"
-          placeholder="Search state..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 border rounded-l px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-green-300"
-        />
-        <button
-          onClick={handleSearch}
-          className="bg-green-600 text-white px-4 py-2 rounded-r hover:bg-green-700"
-        >
-          Search
-        </button>
-      </div>
-
-      {/* Zoom Buttons */}
-      <div className="absolute right-4 top-32 flex flex-col bg-white rounded shadow-md z-10">
-        <button onClick={handleZoomIn} className="px-2 py-1 border-b text-lg font-bold hover:bg-gray-100">
-          +
-        </button>
-        <button onClick={handleZoomOut} className="px-2 py-1 text-lg font-bold hover:bg-gray-100">
-          –
-        </button>
-      </div>
-
-      {/* Tooltip */}
-      {tooltip.show && (
-        <div
-          className="absolute bg-gray-800 text-white text-xs px-2 py-1 rounded shadow"
-          style={{ left: tooltip.x + 10, top: tooltip.y - 20 }}
-        >
-          {tooltip.name}
-        </div>
-      )}
 
       {/* Map */}
-      <ComposableMap
-        projection="geoMercator"
-        projectionConfig={{ scale: 1000, center: [82.8, 22.6] }}
-        width={600}
-        height={500}
-        style={{ width: "100%", height: "auto" }}
+      <MapContainer
+        center={[22.9734, 78.6569]}
+        zoom={5}
+        style={{ height: "calc(100% - 60px)", width: "100%" }}
       >
-        <ZoomableGroup zoom={position.zoom} center={position.coordinates} onMoveEnd={handleMoveEnd}>
-          <Geographies geography={{ type: "FeatureCollection", features }}>
-            {({ geographies }) => {
-              geographiesRef.current = geographies;
-              return geographies.map((geo) => (
-                <Geography
-                  key={geo.rsmKey}
-                  geography={geo}
-                  onClick={() => onSelectState?.(geo.properties.st_nm || geo.properties.STATE)}
-                  onMouseEnter={(e) =>
-                    setTooltip({ name: geo.properties.st_nm || geo.properties.STATE, x: e.clientX, y: e.clientY, show: true })
-                  }
-                  onMouseMove={(e) => setTooltip((prev) => ({ ...prev, x: e.clientX, y: e.clientY }))}
-                  onMouseLeave={() => setTooltip({ name: "", x: 0, y: 0, show: false })}
-                  style={{
-                    default: { fill: "#ecfeff", stroke: "#0f766e", strokeWidth: 0.5, outline: "none" },
-                    hover: { fill: "#99f6e4", stroke: "#0f766e", strokeWidth: 1, cursor: "pointer" },
-                    pressed: { fill: "#14b8a6", stroke: "#0f766e", strokeWidth: 1 },
-                  }}
-                />
-              ));
-            }}
-          </Geographies>
-        </ZoomableGroup>
-      </ComposableMap>
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution="&copy; OpenStreetMap contributors"
+        />
+        {geoData && (
+          <GeoJSON
+            data={geoData}
+            style={{ fillColor: "orange", weight: 1, color: "black", fillOpacity: 0.2 }}
+            onEachFeature={onEachState}
+          />
+        )}
+        {selectedState && selectedState.latlng && (
+          <>
+            <Marker position={selectedState.latlng} icon={customIcon}>
+              <Popup>
+                <div style={{ textAlign: "center" }}>
+                  <strong>{selectedState.name}</strong>
+                  <br />
+                  ✅ Products available here
+                </div>
+              </Popup>
+            </Marker>
+            <MapPanToSelected latlng={selectedState.latlng} />
+          </>
+        )}
+      </MapContainer>
     </div>
   );
-}
+};
 
 export default IndiaMap;

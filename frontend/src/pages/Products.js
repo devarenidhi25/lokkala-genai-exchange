@@ -12,6 +12,7 @@ const SAMPLE_PRODUCTS = [
     price: 1500,
     category: "Clothing",
     state: "West Bengal",
+    artisan: "Anjali Roy",
     image: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=1200&auto=format&fit=crop",
   },
   {
@@ -20,6 +21,7 @@ const SAMPLE_PRODUCTS = [
     price: 450,
     category: "Pottery",
     state: "Maharashtra",
+    artisan: "Ramesh Patil",
     image: "https://images.unsplash.com/photo-1621328910182-35a3561426d4b?q=80&w=1200&auto=format&fit=crop",
   },
   {
@@ -28,6 +30,7 @@ const SAMPLE_PRODUCTS = [
     price: 3200,
     category: "Woodwork",
     state: "Karnataka",
+    artisan: "Kiran Shetty",
     image: "https://images.unsplash.com/photo-1519683109005-58efb1426d4b?q=80&w=1200&auto=format&fit=crop",
   },
   {
@@ -36,6 +39,7 @@ const SAMPLE_PRODUCTS = [
     price: 2800,
     category: "Paintings",
     state: "Bihar",
+    artisan: "Sita Kumari",
     image: "https://images.unsplash.com/photo-1611605698335-8e3b6b5480a6?q=80&w=1200&auto=format&fit=crop",
   },
   {
@@ -44,6 +48,7 @@ const SAMPLE_PRODUCTS = [
     price: 1100,
     category: "Accessories",
     state: "Punjab",
+    artisan: "Harpreet Kaur",
     image: "https://images.unsplash.com/photo-1544441893005-58efb1426d4b?q=80&w=1200&auto=format&fit=crop",
   },
   {
@@ -52,6 +57,7 @@ const SAMPLE_PRODUCTS = [
     price: 220,
     category: "Home",
     state: "Rajasthan",
+    artisan: "Vikram Singh",
     image: "https://images.unsplash.com/photo-1508233620467-f79f1e317a05?q=80&w=1200&auto=format&fit=crop",
   },
   {
@@ -60,6 +66,7 @@ const SAMPLE_PRODUCTS = [
     price: 650,
     category: "Handloom",
     state: "Gujarat",
+    artisan: "Meena Patel",
     image: "https://images.unsplash.com/photo-1585383490008-13ba8e77a5fd?q=80&w=1200&auto=format&fit=crop",
   },
   {
@@ -68,9 +75,11 @@ const SAMPLE_PRODUCTS = [
     price: 900,
     category: "Jewelry",
     state: "Tamil Nadu",
+    artisan: "Lakshmi Nair",
     image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?q=80&w=1200&auto=format&fit=crop",
   },
 ]
+
 
 function ProductsPage() {
   const location = useLocation()

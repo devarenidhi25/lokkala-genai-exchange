@@ -4,21 +4,25 @@ import React, { useState } from "react"
 import axios from "axios"
 
 function SocialAgent() {
-  const [imagePath, setImagePath] = useState("")   // local path or uploaded file name
+  const [imagePath, setImagePath] = useState("")   
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [completed, setCompleted] = useState(false)  // NEW: tracks if work is done
 
   // Call backend Social Media Agent
   const handlePost = async () => {
     if (!imagePath) return alert("Please provide an image path")
     setLoading(true)
+    setCompleted(false) // reset before starting
     try {
       const res = await axios.post("http://127.0.0.1:8000/social-agent", {
         image_path: imagePath
       })
       setResult(res.data)
+      if (res.data.success) setCompleted(true) // mark as completed
     } catch (err) {
       setResult({ success: false, message: err.message })
+      setCompleted(false)
     }
     setLoading(false)
   }
@@ -50,17 +54,27 @@ function SocialAgent() {
         {loading ? "Posting..." : "Generate Caption & Post"}
       </button>
 
-      {result && (
+      {/* Work Completed Banner */}
+      {completed && (
+        <div className="alert alert-success mt-3 d-flex align-items-center">
+          <span style={{ fontSize: "1.5rem", marginRight: "0.5rem" }}>✅</span>
+          <strong>Success!</strong> Your caption has been generated and posting is done.
+        </div>
+      )}
+
+      {/* Result Details */}
+      {result && !completed && (
         <div className={`alert mt-3 ${result.success ? "alert-success" : "alert-danger"}`}>
           <p>{result.message}</p>
-          {result.caption && (
-            <>
-              <p><strong>Caption:</strong> {result.caption}</p>
-              <button className="btn btn-primary mt-2" onClick={() => shareWhatsApp(result.caption)}>
-                Share on WhatsApp
-              </button>
-            </>
-          )}
+        </div>
+      )}
+
+      {result && result.caption && (
+        <div className="mt-2">
+          <p><strong>Caption:</strong> {result.caption}</p>
+          <button className="btn btn-primary mt-2" onClick={() => shareWhatsApp(result.caption)}>
+            Share on WhatsApp
+          </button>
         </div>
       )}
     </main>
