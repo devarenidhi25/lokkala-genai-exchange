@@ -5,23 +5,46 @@ import axios from "axios"
 import BACKEND_URL from "../config"
 
 function SocialAgent() {
-  const [imagePath, setImagePath] = useState("")   
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [preview, setPreview] = useState("")
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [completed, setCompleted] = useState(false)  // NEW: tracks if work is done
+  const [completed, setCompleted] = useState(false)
+
+  // Handle file selection
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setSelectedFile(file)
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file)
+      setPreview(previewUrl)
+      // Reset previous results
+      setResult(null)
+      setCompleted(false)
+    }
+  }
 
   // Call backend Social Media Agent
   const handlePost = async () => {
-    if (!imagePath) return alert("Please provide an image path")
+    if (!selectedFile) return alert("Please select an image file")
+    
     setLoading(true)
-    setCompleted(false) // reset before starting
+    setCompleted(false)
+    
     try {
-      const res = await axios.post(`${BACKEND_URL}/caption/generate`, {
-        image_path: imagePath
+      // Create FormData for file upload
+      const formData = new FormData()
+      formData.append('image', selectedFile)
+
+      const res = await axios.post(`${BACKEND_URL}/caption/generate`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       })
 
       setResult(res.data)
-      if (res.data.success) setCompleted(true) // mark as completed
+      if (res.data.success) setCompleted(true)
     } catch (err) {
       setResult({ success: false, message: err.message })
       setCompleted(false)
@@ -35,26 +58,68 @@ function SocialAgent() {
     window.open(`https://wa.me/?text=${text}`, "_blank")
   }
 
+  // Clear selection
+  const clearSelection = () => {
+    setSelectedFile(null)
+    setPreview("")
+    setResult(null)
+    setCompleted(false)
+    // Clear file input
+    const fileInput = document.getElementById('imageInput')
+    if (fileInput) fileInput.value = ''
+  }
+
   return (
     <main className="container mt-4">
       <h2 className="bold">📲 Social Media Agent</h2>
-      <p className="small text-muted">Generate captions and post your images automatically!</p>
+      <p className="small text-muted">Upload an image to generate captions and post automatically!</p>
 
-      <input
-        type="text"
-        className="form-control mt-3"
-        placeholder="Enter local image path (C:/path/to/image.jpg)"
-        value={imagePath}
-        onChange={(e) => setImagePath(e.target.value)}
-      />
+      {/* File Upload Section */}
+      <div className="mt-3">
+        <label htmlFor="imageInput" className="form-label">Select Image:</label>
+        <input
+          id="imageInput"
+          type="file"
+          className="form-control"
+          accept="image/*"
+          onChange={handleFileSelect}
+        />
+      </div>
 
-      <button
-        className="btn btn-success mt-3"
-        onClick={handlePost}
-        disabled={loading}
-      >
-        {loading ? "Posting..." : "Generate Caption & Post"}
-      </button>
+      {/* Image Preview */}
+      {preview && (
+        <div className="mt-3">
+          <p className="small text-muted">Preview:</p>
+          <div style={{ maxWidth: "300px", marginBottom: "10px" }}>
+            <img 
+              src={preview} 
+              alt="Preview" 
+              className="img-fluid rounded border"
+              style={{ maxHeight: "200px", objectFit: "cover" }}
+            />
+          </div>
+          <p className="small">
+            <strong>Selected:</strong> {selectedFile?.name} ({(selectedFile?.size / 1024 / 1024).toFixed(2)} MB)
+          </p>
+          <button 
+            className="btn btn-outline-secondary btn-sm" 
+            onClick={clearSelection}
+          >
+            Clear Selection
+          </button>
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      <div className="mt-3">
+        <button
+          className="btn btn-success"
+          onClick={handlePost}
+          disabled={loading || !selectedFile}
+        >
+          {loading ? "Processing..." : "Generate Caption & Post"}
+        </button>
+      </div>
 
       {/* Work Completed Banner */}
       {completed && (
@@ -72,11 +137,19 @@ function SocialAgent() {
       )}
 
       {result && result.caption && (
-        <div className="mt-2">
-          <p><strong>Caption:</strong> {result.caption}</p>
-          <button className="btn btn-primary mt-2" onClick={() => shareWhatsApp(result.caption)}>
-            Share on WhatsApp
-          </button>
+        <div className="mt-3">
+          <div className="card">
+            <div className="card-body">
+              <h5 className="card-title">Generated Caption:</h5>
+              <p className="card-text">{result.caption}</p>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => shareWhatsApp(result.caption)}
+              >
+                📱 Share on WhatsApp
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </main>
