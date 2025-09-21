@@ -2,6 +2,7 @@
 
 import React, { useState } from "react"
 import axios from "axios"
+import BACKEND_URL from "../config"
 
 function SocialAgent() {
   const [imagePath, setImagePath] = useState("")   
@@ -15,9 +16,10 @@ function SocialAgent() {
     setLoading(true)
     setCompleted(false) // reset before starting
     try {
-      const res = await axios.post("http://127.0.0.1:8000/social-agent", {
+      const res = await axios.post(`${BACKEND_URL}/social-agent`, {
         image_path: imagePath
       })
+
       setResult(res.data)
       if (res.data.success) setCompleted(true) // mark as completed
     } catch (err) {

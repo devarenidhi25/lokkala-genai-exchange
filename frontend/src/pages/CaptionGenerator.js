@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
+import BACKEND_URL from "../config"
 
 const styles = {
   container: {
@@ -72,11 +73,13 @@ export default function CaptionGenerator() {
         tone: "heritage-focused",
       }
 
-      const res = await fetch("http://127.0.0.1:8000/api/generate-caption", {
+      const res = await fetch(`${BACKEND_URL}/api/generate-caption`, {
+
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
+
 
       if (!res.ok) {
         const text = await res.text()
