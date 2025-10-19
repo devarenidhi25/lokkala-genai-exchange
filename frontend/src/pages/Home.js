@@ -86,7 +86,7 @@ function HomePage() {
               <br />• Authentic craft stories and origins</p>
                 </div>
                 <div className="feature-item scroll-reveal fade-up">
-                  <h4>Why LokKala?</h4>
+                  <h4>🌟Why LokKala?</h4>
                   <p>Made in India, for India. A modern platform celebrating traditional crafts
               with cutting-edge AI technology.</p>
                 </div>
