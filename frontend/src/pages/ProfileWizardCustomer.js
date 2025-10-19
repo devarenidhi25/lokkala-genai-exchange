@@ -35,7 +35,7 @@ function ProfileWizardCustomer() {
       profileCompleted: true,
     }
 
-    await setDoc(doc(db, "profiles", user.uid), {
+    await setDoc(doc(db, "users", user.uid), {
       type: "customer",
       ...profile,
     })

@@ -119,7 +119,7 @@ function ProfileSetupArtisan() {
       console.log("Saving artisan profile:", user.uid, profile)
 
       // Save to Firestore under "profiles" collection
-      await setDoc(doc(db, "profiles", user.uid), profile)
+      await setDoc(doc(db, "users", user.uid), profile)
 
       console.log("✅ Artisan profile saved successfully")
 

@@ -71,7 +71,7 @@ function ProfileWizardArtisan() {
       profileCompleted: true,
     }
 
-    await setDoc(doc(db, "profiles", user.uid), {
+    await setDoc(doc(db, "users", user.uid), {
       type: "artisan",
       ...profile,
     })
