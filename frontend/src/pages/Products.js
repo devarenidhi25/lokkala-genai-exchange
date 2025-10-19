@@ -100,35 +100,49 @@ function ProductsPage() {
     setFiltered(res.length ? res : SAMPLE_PRODUCTS)
   }
 
+  // simple inline layout styles to ensure predictable two-column layout
+  const styles = {
+    page: { padding: 16 },
+    top: { marginBottom: 14 },
+    content: { display: "flex", gap: 20, alignItems: "flex-start" },
+    left: { flex: 1 },
+    right: { width: 360, minWidth: 220 },
+    productsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 },
+  }
+
   return (
-    <main className="container">
+    <main className="container" style={styles.page}>
       {profile && (
-        <section className="card mt-2 p-2">
+        <section className="card mt-2 p-2" style={{ marginBottom: 12 }}>
           <h2>Welcome, customer from {profile.location || "your city"}!</h2>
           <small>Preferences: {profile.cats?.join(", ") || "None selected"}</small>
         </section>
       )}
 
-      <section className="mt-4">
-        <div className="row">
-          <div>
-            <SearchFilters products={SAMPLE_PRODUCTS} onChange={setFiltered} />
+      {/* Top: new full-width search bar + filters (SearchFilters handles layout internally) */}
+      <section style={styles.top}>
+        <SearchFilters products={SAMPLE_PRODUCTS} onChange={setFiltered} />
+      </section>
+
+      {/* Main content: products on left, map to the right */}
+      <section style={styles.content}>
+        <div style={styles.left}>
+          <div style={styles.productsGrid}>
+            {filtered.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
           </div>
-          <div>
+        </div>
+
+        <aside style={styles.right}>
+          <div className="card" style={{ padding: 8 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Select state</div>
             <IndiaMap onSelectState={handleStateSelect} />
           </div>
-        </div>
+        </aside>
       </section>
 
-      <section className="mt-4">
-        <div className="grid grid-3">
-          {filtered.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
-        </div>
-      </section>
-
-      <footer className="footer">
+      <footer className="footer" style={{ marginTop: 22 }}>
         © {new Date().getFullYear()} ArtConnect India • Discover and support local artisans
       </footer>
     </main>
