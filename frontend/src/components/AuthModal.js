@@ -2,12 +2,13 @@
 import React, { useState, useEffect } from "react"
 import { auth, googleProvider } from "../firebase"
 import {
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   fetchSignInMethodsForEmail,
+  updateProfile,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
 } from "firebase/auth"
 
 const PasswordStrength = typeof window !== "undefined" ? window.PasswordStrength : null
@@ -24,6 +25,18 @@ function AuthModal({ open, onClose, onAuthed, initialTab = "signin", initialMeth
   const [name, setName] = useState("")
   const [loading, setLoading] = useState(false)
   const [confirmationResult, setConfirmationResult] = useState(null)
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear()
+        } catch (e) {}
+        window.recaptchaVerifier = null
+      }
+    }
+  }, [])
 
   // --- GOOGLE SIGN-IN ---
   async function handleGoogle() {
@@ -52,7 +65,16 @@ function AuthModal({ open, onClose, onAuthed, initialTab = "signin", initialMeth
           setLoading(false)
           return
         }
-        await createUserWithEmailAndPassword(auth, email, password)
+        const result = await createUserWithEmailAndPassword(auth, email, password)
+        
+        // set displayName if provided
+        try {
+          if (name) {
+            await updateProfile(result.user, { displayName: name })
+          }
+        } catch (err) {
+          console.warn("Could not update displayName:", err)
+        }
       } else {
         await signInWithEmailAndPassword(auth, email, password)
       }
@@ -74,61 +96,94 @@ function AuthModal({ open, onClose, onAuthed, initialTab = "signin", initialMeth
     }
   }
 
-  const getRecaptchaVerifier = async () => {
-    if (typeof window === "undefined") return null;
-
-    // Clear old verifier if exists
-    if (window.recaptchaVerifier) {
-      try {
-        window.recaptchaVerifier.clear();
-      } catch (e) {
-        console.warn("Old reCAPTCHA could not be cleared:", e);
-      }
-      window.recaptchaVerifier = null;
-    }
-
-    const verifier = new RecaptchaVerifier(
-      "recaptcha-container",
-      {
-        size: "invisible",
-        callback: (response) => {
-          console.log("reCAPTCHA solved:", response);
-        },
-        "expired-callback": () => {
-          console.warn("reCAPTCHA expired. Try again.");
-        },
-      },
-      auth
-    );
-
-    await verifier.render(); // ✅ Important: wait for render
-    window.recaptchaVerifier = verifier;
-    return verifier;
-  };
-
-
+  // --- PHONE OTP SEND ---
   const sendOtp = async () => {
     if (!validPhone(phone)) {
-      alert("Enter a valid 10-digit phone number");
-      return;
+      alert("Enter a valid 10-digit phone number")
+      return
     }
 
-    setLoading(true);
+    setLoading(true)
+    
     try {
-      const appVerifier = await getRecaptchaVerifier(); // ✅ await here
-      if (!appVerifier) throw new Error("RecaptchaVerifier not initialized");
+      // Clear existing verifier COMPLETELY
+      if (window.recaptchaVerifier) {
+        try {
+          await window.recaptchaVerifier.clear()
+        } catch (e) {
+          console.warn("Could not clear existing verifier:", e)
+        }
+        window.recaptchaVerifier = null
+      }
 
-      const result = await signInWithPhoneNumber(auth, `+91${phone}`, appVerifier);
-      setConfirmationResult(result);
-      alert("OTP sent successfully!");
+      // Wait for any cleanup to finish
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      // Make sure container exists and is empty
+      const container = document.getElementById("recaptcha-container")
+      if (!container) {
+        throw new Error("Recaptcha container not found!")
+      }
+      
+      // Remove all child elements
+      while (container.firstChild) {
+        container.removeChild(container.firstChild)
+      }
+
+      console.log("Creating RecaptchaVerifier...")
+
+      // Create verifier with explicit settings
+      const recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+        size: "normal",
+        callback: (response) => {
+          console.log("✅ reCAPTCHA solved successfully!")
+        },
+        "expired-callback": () => {
+          console.warn("⚠️ reCAPTCHA expired")
+          alert("reCAPTCHA expired. Please try again.")
+        }
+      })
+
+      // Store in window
+      window.recaptchaVerifier = recaptchaVerifier
+
+      console.log("Sending OTP to: +91" + phone)
+
+      // Send OTP - this will show the reCAPTCHA
+      const result = await signInWithPhoneNumber(auth, `+91${phone}`, recaptchaVerifier)
+      
+      console.log("✅ OTP sent successfully!")
+      setConfirmationResult(result)
+      alert("OTP sent successfully! Check your phone.")
+      
     } catch (err) {
-      console.error("Send OTP error:", err);
-      alert("Failed to send OTP: " + err.message);
+      console.error("❌ Send OTP error:", err)
+      console.error("Error code:", err.code)
+      console.error("Error message:", err.message)
+      
+      // Clear verifier on error
+      if (window.recaptchaVerifier) {
+        try {
+          await window.recaptchaVerifier.clear()
+        } catch (e) {
+          console.warn("Could not clear verifier after error:", e)
+        }
+        window.recaptchaVerifier = null
+      }
+      
+      let msg = "Failed to send OTP. "
+      if (err.code === "auth/invalid-phone-number") {
+        msg += "Invalid phone number."
+      } else if (err.code === "auth/too-many-requests") {
+        msg += "Too many attempts. Try later."
+      } else {
+        msg += err.message
+      }
+      alert(msg)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
-
+  }
 
   // --- PHONE OTP VERIFY ---
   const verifyOtp = async (e) => {
@@ -140,6 +195,17 @@ function AuthModal({ open, onClose, onAuthed, initialTab = "signin", initialMeth
     setLoading(true)
     try {
       const result = await confirmationResult.confirm(otp)
+      console.log("User signed in:", result.user)
+      
+      // set displayName if provided
+      try {
+        if (name && auth.currentUser) {
+          await updateProfile(auth.currentUser, { displayName: name })
+        }
+      } catch (err) {
+        console.warn("Could not update displayName:", err)
+      }
+      
       onAuthed?.(result.user)
       onClose?.()
     } catch (err) {
@@ -201,7 +267,7 @@ function AuthModal({ open, onClose, onAuthed, initialTab = "signin", initialMeth
             </div>
           </div>
 
-          {tab === "signup" && (
+          {tab === "signup" && method === "email" && (
             <div className="mt-3">
               <label className="label">Full Name</label>
               <input
@@ -246,19 +312,33 @@ function AuthModal({ open, onClose, onAuthed, initialTab = "signin", initialMeth
                   Continue with Google
                 </button>
                 <button className="btn btn-primary" type="submit" disabled={loading}>
-                  {tab === "signin" ? "Sign in" : "Create account"}
+                  {loading ? (tab === "signin" ? "Signing in..." : "Creating...") : (tab === "signin" ? "Sign in" : "Create account")}
                 </button>
               </div>
             </form>
           ) : (
             <form className="mt-3" onSubmit={verifyOtp}>
-              <div id="recaptcha-container"></div>
+              <div id="recaptcha-container" style={{ marginBottom: 16 }}></div>
+              
+              {tab === "signup" && (
+                <div className="mt-3">
+                  <label className="label">Full Name (Optional)</label>
+                  <input
+                    className="input"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Your name"
+                  />
+                </div>
+              )}
+              
               <label className="label">Phone (10 digits)</label>
               <input
                 className="input"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="9876543210"
+                maxLength="10"
               />
               <button
                 type="button"
@@ -266,15 +346,22 @@ function AuthModal({ open, onClose, onAuthed, initialTab = "signin", initialMeth
                 onClick={sendOtp}
                 disabled={loading}
               >
-                Send OTP
+                {loading ? "Sending..." : "Send OTP"}
               </button>
-              <label className="label mt-3">OTP</label>
-              <input
-                className="input"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                placeholder="123456"
-              />
+              
+              {confirmationResult && (
+                <>
+                  <label className="label mt-3">OTP</label>
+                  <input
+                    className="input"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    placeholder="123456"
+                    maxLength="6"
+                  />
+                </>
+              )}
+              
               <div className="form-actions">
                 <button
                   className="btn"
@@ -284,8 +371,8 @@ function AuthModal({ open, onClose, onAuthed, initialTab = "signin", initialMeth
                 >
                   Continue with Google
                 </button>
-                <button className="btn btn-primary" type="submit" disabled={loading}>
-                  {tab === "signin" ? "Verify & Sign in" : "Verify & Sign up"}
+                <button className="btn btn-primary" type="submit" disabled={loading || !confirmationResult}>
+                  {loading ? "Verifying..." : (tab === "signin" ? "Verify & Sign in" : "Verify & Sign up")}
                 </button>
               </div>
             </form>
