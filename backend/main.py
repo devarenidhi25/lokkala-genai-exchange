@@ -4,11 +4,13 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types
 from agent import root_agent
 import os
-
+from dotenv import load_dotenv
+load_dotenv()
 APP_NAME = "instagram_pipeline"
 USER_ID = "user123"
 SESSION_ID = "session_1234"
 
+# router of translater left to add
 
 async def main():
     image_path = "C:/Users/Hxtreme/Downloads/lion.jpg"  
