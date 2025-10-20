@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom"
+import { LanguageProvider } from "./context/LanguageContext"
 import { AppStore } from "./utils/storage"
 import Header from "./components/Header"
 import HomePage from "./pages/Home"
@@ -9,9 +10,9 @@ import ProductsPage from "./pages/Products"
 import ProfileSetupCustomer from "./pages/ProfileSetupCustomer"
 import ProfileSetupArtisan from "./pages/ProfileSetupArtisan"
 import ArtisanDashboard from "./pages/ArtisanDashboard"
-import CaptionGenerator from "./pages/CaptionGenerator"      // ✅ new
-import ImageEnhancement from "./pages/ImageEnhancement"      // ✅ new
-import SocialAgent from "./pages/SocialAgent"                // ✅ new
+import CaptionGenerator from "./pages/CaptionGenerator"
+import ImageEnhancement from "./pages/ImageEnhancement"
+import SocialAgent from "./pages/SocialAgent"
 import AuthModal from "./components/AuthModal"
 import Footer from "./components/Footer"
 import SignUp from "./pages/SignUp"
@@ -45,7 +46,6 @@ function AppShell() {
         <Route path="/profile-setup/artisan" element={<ProfileSetupArtisan />} />
         <Route path="/artisan" element={<ArtisanDashboard />} />
 
-        {/* ✅ new artisan feature routes */}
         <Route path="/caption-generator" element={<CaptionGenerator />} />
         <Route path="/image-enhancement" element={<ImageEnhancement />} />
         <Route path="/social-agent" element={<SocialAgent />} />
@@ -74,9 +74,11 @@ function AppShell() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AppShell />
-    </BrowserRouter>
+    <LanguageProvider>
+      <BrowserRouter>
+        <AppShell />
+      </BrowserRouter>
+    </LanguageProvider>
   )
 }
 

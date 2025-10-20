@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom"
 import SearchFilters from "../components/SearchFilters"
 import IndiaMap from "../components/IndiaMap"
 import ProductCard from "../components/ProductCard"
+import LanguageSelectorBubble from "../components/LanguageSelectorBubble"
 
 const SAMPLE_PRODUCTS = [
   {
@@ -197,9 +198,12 @@ function ProductsPage() {
         </aside>
       </section>
 
-      <footer className="footer" style={{ marginTop: 22 }}>
+      {/* Floating Language Selector Bubble */}
+      <LanguageSelectorBubble />
+
+      {/* <footer className="footer" style={{ marginTop: 22 }}>
         © {new Date().getFullYear()} ArtConnect India • Discover and support local artisans
-      </footer>
+      </footer> */}
     </main>
   )
 }
