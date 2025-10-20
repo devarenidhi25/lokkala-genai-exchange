@@ -13,7 +13,6 @@ const INDIA_STATES = [
   "Ladakh","Lakshadweep","Puducherry"
 ];
 
-// Default lat/lng for each state to show marker
 const STATE_COORDS = {
   "Andhra Pradesh": [15.9129, 79.74],
   "Arunachal Pradesh": [28.2180, 94.7278],
@@ -53,16 +52,15 @@ const STATE_COORDS = {
   "Puducherry": [11.9416, 79.8083],
 };
 
-// Pan map to selected state
 const MapPanToSelected = ({ latlng }) => {
   const map = useMap();
   useEffect(() => {
     if (latlng) map.flyTo(latlng, 6);
-  }, [latlng]);
+  }, [latlng, map]);
   return null;
 };
 
-const IndiaMap = ({ onSelectState }) => {
+const IndiaMap = ({ onSelectState, products = [] }) => {
   const [geoData, setGeoData] = useState(null);
   const [selectedState, setSelectedState] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -74,13 +72,49 @@ const IndiaMap = ({ onSelectState }) => {
       .catch((err) => console.error("Error loading geojson:", err));
   }, []);
 
-  // Custom marker icon
-  const customIcon = new L.Icon({
-    iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
-    iconSize: [25, 25],
-    iconAnchor: [12, 25],
-    popupAnchor: [0, -20],
-  });
+  // Get states with products and count
+  const statesWithProducts = products.reduce((acc, product) => {
+    if (!acc[product.state]) {
+      acc[product.state] = 0;
+    }
+    acc[product.state]++;
+    return acc;
+  }, {});
+
+  // Custom pin icon with emoji
+  const createCustomIcon = (count) => {
+    return L.divIcon({
+      html: `<div style="
+        font-size: 28px;
+        text-align: center;
+        cursor: pointer;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        position: relative;
+      ">
+        📍
+        <div style="
+          position: absolute;
+          top: -8px;
+          right: -8px;
+          background: #ff4444;
+          color: white;
+          border-radius: 50%;
+          width: 20px;
+          height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          font-weight: bold;
+          border: 2px solid white;
+        ">${count}</div>
+      </div>`,
+      className: 'custom-pin-icon',
+      iconSize: [40, 40],
+      iconAnchor: [20, 40],
+      popupAnchor: [0, -40],
+    });
+  };
 
   const onEachState = (feature, layer) => {
     const stateName = feature.properties?.st_nm;
@@ -88,27 +122,29 @@ const IndiaMap = ({ onSelectState }) => {
     layer.on({
       mouseover: (e) => {
         if (!selectedState || selectedState.name !== stateName) {
-          e.target.setStyle({ weight: 2, color: "blue", fillOpacity: 0.4 });
+          e.target.setStyle({ weight: 2, color: "blue", fillOpacity: 0.3 });
         }
       },
       mouseout: (e) => {
         if (!selectedState || selectedState.name !== stateName) {
-          e.target.setStyle({ weight: 1, color: "black", fillOpacity: 0.2 });
+          e.target.setStyle({ weight: 1, color: "#666", fillOpacity: 0.1 });
         }
       },
       click: (e) => {
-        handleStateSelect(stateName, e.latlng, layer);
+        if (statesWithProducts[stateName]) {
+          handleStateSelect(stateName, e.latlng, layer);
+        }
       },
     });
   };
 
   const handleStateSelect = (stateName, latlng, layer = null) => {
     if (selectedState?.layer) {
-      selectedState.layer.setStyle({ weight: 1, color: "black", fillOpacity: 0.2 });
+      selectedState.layer.setStyle({ weight: 1, color: "#666", fillOpacity: 0.1 });
     }
 
     if (layer) {
-      layer.setStyle({ weight: 3, color: "red", fillOpacity: 0.5 });
+      layer.setStyle({ weight: 3, color: "#2563eb", fillOpacity: 0.3 });
     }
 
     const coords = latlng || STATE_COORDS[stateName] || [22.9734, 78.6569];
@@ -123,63 +159,124 @@ const IndiaMap = ({ onSelectState }) => {
     const stateName = INDIA_STATES.find(
       (s) => s.toLowerCase() === searchTerm.toLowerCase()
     );
-    if (stateName) {
+    if (stateName && statesWithProducts[stateName]) {
       handleStateSelect(stateName);
+    } else if (stateName) {
+      alert("No products available in this state!");
     } else {
       alert("State not found!");
     }
   };
 
   return (
-    <div style={{ height: "100vh", width: "100%" }}>
+    <div style={{ height: "100%", width: "100%", display: "flex", flexDirection: "column" }}>
       {/* Search Box */}
-      <div style={{ padding: "10px", background: "#f0f0f0" }}>
-        <form onSubmit={handleSearch}>
+      <div style={{ padding: "8px", background: "#f8f9fa", borderBottom: "1px solid #dee2e6" }}>
+        <form onSubmit={handleSearch} style={{ display: "flex", gap: "6px" }}>
           <input
             type="text"
             placeholder="Search states..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ padding: "5px", width: "200px" }}
+            style={{ 
+              padding: "6px 10px", 
+              flex: 1,
+              border: "1px solid #ced4da",
+              borderRadius: "4px",
+              fontSize: "13px"
+            }}
           />
-          <button type="submit" style={{ marginLeft: "5px", padding: "5px 10px" }}>
+          <button 
+            type="submit" 
+            style={{ 
+              padding: "6px 12px",
+              background: "#2563eb",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "13px",
+              fontWeight: "500"
+            }}
+          >
             Search
           </button>
         </form>
       </div>
 
       {/* Map */}
-      <MapContainer
-        center={[22.9734, 78.6569]}
-        zoom={5}
-        style={{ height: "calc(100% - 60px)", width: "100%" }}
-      >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution="&copy; OpenStreetMap contributors"
-        />
-        {geoData && (
-          <GeoJSON
-            data={geoData}
-            style={{ fillColor: "orange", weight: 1, color: "black", fillOpacity: 0.2 }}
-            onEachFeature={onEachState}
+      <div style={{ flex: 1, position: "relative" }}>
+        <MapContainer
+          center={[22.9734, 78.6569]}
+          zoom={5}
+          style={{ height: "100%", width: "100%" }}
+          scrollWheelZoom={true}
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution="&copy; OpenStreetMap contributors"
           />
-        )}
-        {selectedState && selectedState.latlng && (
-          <>
-            <Marker position={selectedState.latlng} icon={customIcon}>
-              <Popup>
-                <div style={{ textAlign: "center" }}>
-                  <strong>{selectedState.name}</strong>
-                  <br />
-                  ✅ Products available here
-                </div>
-              </Popup>
-            </Marker>
+          {geoData && (
+            <GeoJSON
+              data={geoData}
+              style={{ 
+                fillColor: "#fef3c7", 
+                weight: 1, 
+                color: "#666", 
+                fillOpacity: 0.1 
+              }}
+              onEachFeature={onEachState}
+            />
+          )}
+          
+          {/* Render pins for states with products */}
+          {Object.entries(statesWithProducts).map(([stateName, count]) => {
+            const coords = STATE_COORDS[stateName];
+            if (!coords) return null;
+            
+            return (
+              <Marker 
+                key={stateName}
+                position={coords} 
+                icon={createCustomIcon(count)}
+                eventHandlers={{
+                  click: () => handleStateSelect(stateName, coords)
+                }}
+              >
+                <Popup>
+                  <div style={{ textAlign: "center", minWidth: "120px" }}>
+                    <strong style={{ fontSize: "14px" }}>{stateName}</strong>
+                    <br />
+                    <span style={{ fontSize: "13px", color: "#666" }}>
+                      {count} {count === 1 ? 'product' : 'products'} available
+                    </span>
+                    <br />
+                    <button
+                      onClick={() => handleStateSelect(stateName, coords)}
+                      style={{
+                        marginTop: "8px",
+                        padding: "4px 12px",
+                        background: "#2563eb",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                        fontSize: "12px"
+                      }}
+                    >
+                      View Products
+                    </button>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
+          
+          {selectedState && selectedState.latlng && (
             <MapPanToSelected latlng={selectedState.latlng} />
-          </>
-        )}
-      </MapContainer>
+          )}
+        </MapContainer>
+      </div>
     </div>
   );
 };

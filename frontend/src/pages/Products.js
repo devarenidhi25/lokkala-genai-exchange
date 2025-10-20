@@ -83,31 +83,63 @@ const SAMPLE_PRODUCTS = [
 
 function ProductsPage() {
   const location = useLocation()
-  const profile = location.state  // 👈 this is what you passed with navigate
+  const profile = location.state
   const [filtered, setFiltered] = useState(SAMPLE_PRODUCTS)
+  const [selectedStateFromMap, setSelectedStateFromMap] = useState(null)
 
   useEffect(() => {
     if (profile?.location) {
-      // optional: auto-filter products by profile location
       const res = SAMPLE_PRODUCTS.filter((p) => p.state === profile.location)
       setFiltered(res.length ? res : SAMPLE_PRODUCTS)
     }
   }, [profile])
 
   function handleStateSelect(state) {
-    if (!state) return setFiltered(SAMPLE_PRODUCTS)
-    const res = SAMPLE_PRODUCTS.filter((p) => p.state === state)
-    setFiltered(res.length ? res : SAMPLE_PRODUCTS)
+    setSelectedStateFromMap(state)
+    if (!state) {
+      setFiltered(SAMPLE_PRODUCTS)
+    } else {
+      const res = SAMPLE_PRODUCTS.filter((p) => p.state === state)
+      setFiltered(res.length ? res : [])
+    }
   }
 
-  // simple inline layout styles to ensure predictable two-column layout
   const styles = {
     page: { padding: 16 },
     top: { marginBottom: 14 },
     content: { display: "flex", gap: 20, alignItems: "flex-start" },
     left: { flex: 1 },
-    right: { width: 360, minWidth: 220 },
-    productsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 },
+    right: { width: 360, minWidth: 220, position: "sticky", top: 16 },
+    productsGrid: { 
+      display: "grid", 
+      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", 
+      gap: 16 
+    },
+    mapContainer: { 
+      padding: 8, 
+      height: "600px",
+      borderRadius: "8px",
+      overflow: "hidden"
+    },
+    selectedBadge: {
+      background: "#2563eb",
+      color: "white",
+      padding: "6px 12px",
+      borderRadius: "4px",
+      fontSize: "13px",
+      marginBottom: "10px",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "8px"
+    },
+    clearButton: {
+      background: "transparent",
+      border: "none",
+      color: "white",
+      cursor: "pointer",
+      fontSize: "16px",
+      padding: "0 4px"
+    }
   }
 
   return (
@@ -119,25 +151,48 @@ function ProductsPage() {
         </section>
       )}
 
-      {/* Top: new full-width search bar + filters (SearchFilters handles layout internally) */}
       <section style={styles.top}>
         <SearchFilters products={SAMPLE_PRODUCTS} onChange={setFiltered} />
       </section>
 
-      {/* Main content: products on left, map to the right */}
       <section style={styles.content}>
         <div style={styles.left}>
-          <div style={styles.productsGrid}>
-            {filtered.map((p) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
-          </div>
+          {selectedStateFromMap && (
+            <div style={styles.selectedBadge}>
+              <span>Showing products from: {selectedStateFromMap}</span>
+              <button 
+                onClick={() => handleStateSelect(null)}
+                style={styles.clearButton}
+                title="Clear filter"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+          
+          {filtered.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
+              <h3>No products found</h3>
+              <p>Try selecting a different state or clearing filters</p>
+            </div>
+          ) : (
+            <div style={styles.productsGrid}>
+              {filtered.map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          )}
         </div>
 
         <aside style={styles.right}>
-          <div className="card" style={{ padding: 8 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Select state</div>
-            <IndiaMap onSelectState={handleStateSelect} />
+          <div className="card" style={styles.mapContainer}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+              📍 Select State to View Products
+            </div>
+            <IndiaMap 
+              onSelectState={handleStateSelect} 
+              products={SAMPLE_PRODUCTS}
+            />
           </div>
         </aside>
       </section>
