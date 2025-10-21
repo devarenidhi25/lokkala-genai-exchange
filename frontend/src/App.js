@@ -17,6 +17,7 @@ import AuthModal from "./components/AuthModal"
 import Footer from "./components/Footer"
 import SignUp from "./pages/SignUp"
 import SignIn from "./pages/SignIn"
+import Profile from "./pages/Profile"
 
 function AppShell() {
   const [authOpen, setAuthOpen] = useState(false)
@@ -42,6 +43,7 @@ function AppShell() {
       <Routes>
         <Route path="/" element={<HomePage onOpenAuth={openAuth} />} />
         <Route path="/products" element={<ProductsPage />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/profile-setup/customer" element={<ProfileSetupCustomer />} />
         <Route path="/profile-setup/artisan" element={<ProfileSetupArtisan />} />
         <Route path="/artisan" element={<ArtisanDashboard />} />

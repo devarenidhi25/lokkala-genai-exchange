@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom"
 import { getFirestore, doc, setDoc } from "firebase/firestore"
 import { auth } from "../firebase"
 import { onAuthStateChanged } from "firebase/auth"
+import { AppStore } from "../utils/storage"
 
 function ProfileSetupCustomer() {
   const navigate = useNavigate()
@@ -13,6 +14,7 @@ function ProfileSetupCustomer() {
   // auth state
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
 
   // profile fields
   const [location, setLocation] = useState("")
@@ -67,27 +69,42 @@ function ProfileSetupCustomer() {
       return
     }
 
-    const profile = { location, pincode, cats, budget, purpose }
+    setSaving(true)
+
+    const profile = {
+      type: "customer",
+      location,
+      pincode,
+      cats,
+      budget,
+      purpose,
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName || "",
+      createdAt: new Date().toISOString()
+    }
 
     try {
       // 🔍 Debug log
       console.log("Saving profile for:", user.uid, profile)
 
-      await setDoc(doc(db, "users", user.uid), {
-        type: "customer",
-        ...profile,
-      })
+      await setDoc(doc(db, "users", user.uid), profile)
 
       console.log("✅ Profile saved successfully")
+
+      // Save locally
+      AppStore.setProfile("customer", profile)
+      AppStore.setUser({ uid: user.uid, email: user.email, role: "customer", displayName: user.displayName })
 
       // 👉 Navigate after save
       navigate("/products", { state: profile })
     } catch (err) {
       console.error("❌ Firestore error:", err)
       alert("Error saving profile: " + err.message)
+    } finally {
+      setSaving(false)
     }
   }
-
 
   return (
     <main className="container">
@@ -144,8 +161,8 @@ function ProfileSetupCustomer() {
             </div>
           </div>
           <div className="form-actions">
-            <button className="btn btn-primary" onClick={save}>
-              Save & Continue
+            <button className="btn btn-primary" onClick={save} disabled={saving}>
+              {saving ? "Saving..." : "Save & Continue"}
             </button>
           </div>
         </div>
