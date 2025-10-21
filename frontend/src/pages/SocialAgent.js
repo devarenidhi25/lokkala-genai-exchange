@@ -25,7 +25,7 @@ function SocialAgent() {
     }
   }
 
-  // Call backend Social Media Agent
+  // Call backend Instagram Poster Agent
   const handlePost = async () => {
     if (!selectedFile) return alert("Please select an image file")
     
@@ -36,17 +36,24 @@ function SocialAgent() {
       // Create FormData for file upload
       const formData = new FormData()
       formData.append('image', selectedFile)
+      formData.append('caption', '') // Empty caption - agent will generate one
 
-      const res = await axios.post(`${BACKEND_URL}/caption/generate`, formData, {
+      // Use the Instagram post endpoint
+      const res = await axios.post(`${BACKEND_URL}/instagram/post`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       })
 
+      console.log("Response:", res.data)
       setResult(res.data)
       if (res.data.success) setCompleted(true)
     } catch (err) {
-      setResult({ success: false, message: err.message })
+      console.error("Error:", err)
+      setResult({ 
+        success: false, 
+        message: err.response?.data?.detail || err.message 
+      })
       setCompleted(false)
     }
     setLoading(false)
@@ -72,7 +79,7 @@ function SocialAgent() {
   return (
     <main className="container mt-4">
       <h2 className="bold">📲 Social Media Agent</h2>
-      <p className="small text-muted">Upload an image to generate captions and post automatically!</p>
+      <p className="small text-muted">Upload an image to generate captions and post to Instagram automatically!</p>
 
       {/* File Upload Section */}
       <div className="mt-3">
@@ -117,7 +124,7 @@ function SocialAgent() {
           onClick={handlePost}
           disabled={loading || !selectedFile}
         >
-          {loading ? "Processing..." : "Generate Caption & Post"}
+          {loading ? "Processing..." : "Generate Caption & Post to Instagram"}
         </button>
       </div>
 
@@ -125,28 +132,49 @@ function SocialAgent() {
       {completed && (
         <div className="alert alert-success mt-3 d-flex align-items-center">
           <span style={{ fontSize: "1.5rem", marginRight: "0.5rem" }}>✅</span>
-          <strong>Success!</strong> Your caption has been generated and posting is done.
+          <div>
+            <strong>Success!</strong> Your content has been posted to Instagram.
+          </div>
         </div>
       )}
 
       {/* Result Details */}
-      {result && !completed && (
-        <div className={`alert mt-3 ${result.success ? "alert-success" : "alert-danger"}`}>
-          <p>{result.message}</p>
+      {result && !result.success && (
+        <div className="alert alert-danger mt-3">
+          <p><strong>Error:</strong> {result.message}</p>
         </div>
       )}
 
-      {result && result.caption && (
+      {result && result.success && result.caption && (
         <div className="mt-3">
           <div className="card">
             <div className="card-body">
-              <h5 className="card-title">Generated Caption:</h5>
-              <p className="card-text">{result.caption}</p>
+              <h5 className="card-title">✨ Posted Successfully!</h5>
+              
+              <div className="mb-3">
+                <strong>Caption:</strong>
+                <p className="card-text mt-2">{result.caption}</p>
+              </div>
+
+              {result.post_result && (
+                <div className="mb-3">
+                  <strong>Instagram Response:</strong>
+                  <p className="text-muted small mt-2">{result.post_result}</p>
+                </div>
+              )}
+
               <button 
-                className="btn btn-primary" 
+                className="btn btn-primary me-2" 
                 onClick={() => shareWhatsApp(result.caption)}
               >
                 📱 Share on WhatsApp
+              </button>
+
+              <button 
+                className="btn btn-outline-secondary" 
+                onClick={() => navigator.clipboard.writeText(result.caption)}
+              >
+                📋 Copy Caption
               </button>
             </div>
           </div>

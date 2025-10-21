@@ -1,10 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-
-/**
- * LanguageContext
- * - provides: lang, setLang, t (translation function), tSync, ready (boolean), languages
- * - caches translations per language in localStorage under "translations_{lang}"
- */
+import BACKEND_URL from "../config";
 
 const LanguageContext = createContext();
 
@@ -41,7 +36,6 @@ export function LanguageProvider({ children }) {
   const [ready, setReady] = useState(true);
 
   useEffect(() => {
-    // Load translations for current lang from localStorage
     try {
       const raw = localStorage.getItem(`translations_${lang}`);
       setTranslations(raw ? JSON.parse(raw) : {});
@@ -50,20 +44,23 @@ export function LanguageProvider({ children }) {
     }
   }, [lang]);
 
-  // helper: call backend to translate an array of texts
   async function translateMany(texts = []) {
     if (!texts || texts.length === 0) return [];
+    if (lang === DEFAULT_LANG) return texts;
+    
     setReady(false);
     try {
-      const res = await fetch("/translate", {
+      const res = await fetch(`${BACKEND_URL}/translate`, { 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ texts, target: lang }),
       });
-      if (!res.ok) throw new Error("Translation API error");
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Translation API error:", errorText);
+        throw new Error("Translation API error");
+      }
       const data = await res.json();
-      // data.translations should be array of translated strings, same length
-      // merge into cache object mapping original -> translated
       const newMap = { ...translations };
       texts.forEach((src, idx) => {
         newMap[src] = data.translations[idx] ?? src;
@@ -73,20 +70,17 @@ export function LanguageProvider({ children }) {
       return texts.map((t) => newMap[t]);
     } catch (err) {
       console.error("translateMany error:", err);
-      // fallback: return originals
       return texts;
     } finally {
       setReady(true);
     }
   }
 
-  // translation function tSync: single string -> translated string (sync, returns cached or original)
   function tSync(key) {
     if (lang === DEFAULT_LANG) return key;
     return translations[key] ?? key;
   }
 
-  // t: returns translated value. If missing in cache, triggers translation asynchronously
   async function t(keyOrArray) {
     if (!keyOrArray) return keyOrArray;
     if (Array.isArray(keyOrArray)) {
@@ -96,7 +90,6 @@ export function LanguageProvider({ children }) {
     } else {
       if (lang === DEFAULT_LANG) return keyOrArray;
       if (translations[keyOrArray]) return translations[keyOrArray];
-      // request translation but return original immediately
       translateMany([keyOrArray]).catch(() => {});
       return keyOrArray;
     }

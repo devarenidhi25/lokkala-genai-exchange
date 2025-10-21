@@ -3,14 +3,15 @@
 import React, { useState } from "react"
 import { TrendingUp, Target, Calendar, BarChart3 } from "lucide-react"
 
+import { useNavigate } from "react-router-dom"
+
 function ArtisanDashboard() {
+  const navigate = useNavigate()
+
   const [activeTab, setActiveTab] = useState("trends")
 
   // Navigation handlers - you'll connect these to your routing
-  const handleNavigate = (path) => {
-    console.log(`Navigate to: ${path}`)
-    // Replace with your actual navigation logic: navigate(path)
-  }
+  
 
   // This will be replaced with actual data from your backend
   const mockInsights = {
@@ -63,14 +64,14 @@ function ArtisanDashboard() {
               <button
                 className="btn btn-secondary"
                 title="Generate catchy captions for your posts or products"
-                onClick={() => handleNavigate("/caption-generator")}
+                onClick={() => navigate("/caption-generator")}
               >
                 📝 Caption Generator
               </button>
               <button
                 className="btn btn-success"
                 title="Automatically manage your social media posts and interactions"
-                onClick={() => handleNavigate("/social-agent")}
+                onClick={() => navigate("/social-agent")}
               >
                 📲 Social Media Agent
               </button>

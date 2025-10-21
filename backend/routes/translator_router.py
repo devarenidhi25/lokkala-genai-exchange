@@ -20,17 +20,20 @@ class TranslateResponse(BaseModel):
     translations: List[str]
 
 # ----------- Config -----------
-# *** MODIFIED: Rely completely on the environment variable 'GCLOUD_PROJECT' ***
-PROJECT_ID = os.environ.get("GCLOUD_PROJECT") 
-
-# Check if the variable was set. Raise an error if running locally without it.
-if not PROJECT_ID:
-    raise EnvironmentError("The GCLOUD_PROJECT environment variable is not set. Cannot run the application.")
+# Try multiple environment variable names and remove quotes
+PROJECT_ID = (
+    os.environ.get("GCLOUD_PROJECT", "").strip('"').strip("'") or 
+    os.environ.get("GOOGLE_CLOUD_PROJECT", "").strip('"').strip("'") or
+    os.environ.get("GCP_PROJECT", "").strip('"').strip("'") or
+    "gen-ai-exchange-ho-548d0"  # Fallback to your project ID
+)
 
 LOCATION = "global"
 
+print(f"Using Google Cloud Project ID: {PROJECT_ID}")
+
 # ----------- Routes -----------
-@router.post("/", response_model=TranslateResponse)
+@router.post("", response_model=TranslateResponse)  # Changed from "/" to ""
 async def translate_text(req: TranslateRequest):
     """
     Translate an array of texts into the target language using
@@ -40,6 +43,10 @@ async def translate_text(req: TranslateRequest):
         raise HTTPException(status_code=400, detail="texts must be a non-empty list")
     if not req.target:
         raise HTTPException(status_code=400, detail="target language required")
+
+    # If target is English, just return the originals
+    if req.target == "en":
+        return {"translations": req.texts}
 
     try:
         client = translate.TranslationServiceClient()
@@ -55,4 +62,5 @@ async def translate_text(req: TranslateRequest):
         translated = [t.translated_text for t in response.translations]
         return {"translations": translated}
     except Exception as e:
+        print(f"Translation error: {e}")
         raise HTTPException(status_code=500, detail=f"Translation failed: {e}")
