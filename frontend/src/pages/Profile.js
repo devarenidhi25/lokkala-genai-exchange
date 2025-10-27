@@ -128,6 +128,22 @@ function Profile() {
                     <Mail style={{ width: "18px", height: "18px" }} />
                     <span>{user?.email}</span>
                   </div>
+                  
+                  {/* Go to Dashboard Button */}
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => navigate("/artisan")}
+                    style={{
+                      marginTop: "1rem",
+                      background: "white",
+                      color: "var(--primary)",
+                      border: "2px solid white",
+                      fontWeight: "600",
+                      padding: "0.75rem 1.5rem"
+                    }}
+                  >
+                    🚀 Go to Artisan Dashboard
+                  </button>
                 </div>
               </div>
             </div>
