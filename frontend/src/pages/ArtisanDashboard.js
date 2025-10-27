@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom"
 import { getFirestore, doc, updateDoc, arrayUnion, getDoc } from "firebase/firestore"
 import { auth, storage } from "../firebase"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
+import CatalogPromotion from "../components/CatalogPromotion"  // ✅ CORRECT
 
 function ArtisanDashboard() {
   const navigate = useNavigate()
@@ -14,6 +15,7 @@ function ArtisanDashboard() {
   const [activeTab, setActiveTab] = useState("trends")
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [user, setUser] = useState(null)
+  const [profile, setProfile] = useState(null)
   const [uploading, setUploading] = useState(false)
   
   // Upload form state
@@ -24,11 +26,22 @@ function ArtisanDashboard() {
   const [imageFiles, setImageFiles] = useState([])
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
       setUser(currentUser)
+      
+      if (currentUser) {
+        try {
+          const userDoc = await getDoc(doc(db, "users", currentUser.uid))
+          if (userDoc.exists()) {
+            setProfile(userDoc.data())
+          }
+        } catch (error) {
+          console.error("Error fetching profile:", error)
+        }
+      }
     })
     return () => unsubscribe()
-  }, [])
+  }, [db])
 
   const mockInsights = {
     colorTrends: [
@@ -100,35 +113,26 @@ function ArtisanDashboard() {
     try {
       console.log("=== UPLOAD STARTING ===")
       console.log("User UID:", user.uid)
-      console.log("User Email:", user.email)
       console.log("Number of images:", imageFiles.length)
 
-      // Check if storage is properly initialized
       if (!storage) {
         throw new Error("Firebase Storage is not initialized. Check your firebase.js configuration.")
       }
 
-      // Upload images to Firebase Storage with timeout
+      // Upload images to Firebase Storage
       const imageUrls = []
       for (let index = 0; index < imageFiles.length; index++) {
         const file = imageFiles[index]
-        console.log(`\n--- Uploading image ${index + 1}/${imageFiles.length} ---`)
-        console.log("File name:", file.name)
-        console.log("File size:", file.size, "bytes")
+        console.log(`Uploading image ${index + 1}/${imageFiles.length}`)
         
         const timestamp = Date.now()
         const fileName = `${timestamp}_${index}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`
         const storagePath = `products/${user.uid}/${fileName}`
         
-        console.log("Storage path:", storagePath)
-        
-        // Add timeout for upload
         const uploadPromise = (async () => {
           const storageRef = ref(storage, storagePath)
           const uploadResult = await uploadBytes(storageRef, file)
-          console.log("✅ Upload successful:", uploadResult.metadata.fullPath)
           const downloadURL = await getDownloadURL(storageRef)
-          console.log("✅ Download URL obtained")
           return downloadURL
         })()
 
@@ -140,8 +144,7 @@ function ArtisanDashboard() {
         imageUrls.push(downloadURL)
       }
 
-      console.log("\n=== ALL IMAGES UPLOADED ===")
-      console.log("Image URLs:", imageUrls)
+      console.log("All images uploaded successfully")
 
       // Create product object
       const product = {
@@ -153,28 +156,19 @@ function ArtisanDashboard() {
         artisanId: user.uid
       }
 
-      console.log("\n=== SAVING TO FIRESTORE ===")
-
       // Update user document with new product
       const userRef = doc(db, "users", user.uid)
-      
-      console.log("Checking if user document exists...")
       const userDoc = await getDoc(userRef)
       
       if (!userDoc.exists()) {
-        console.error("❌ User document does not exist!")
         alert("Profile not found. Please complete your profile setup first.")
         return
       }
 
-      console.log("✅ User document exists")
-      
-      console.log("Updating Firestore with new product...")
       await updateDoc(userRef, {
         products: arrayUnion(product)
       })
 
-      console.log("✅✅✅ PRODUCT UPLOADED SUCCESSFULLY! ✅✅✅")
       alert("✅ Product uploaded successfully!")
       
       // Reset form
@@ -185,29 +179,19 @@ function ArtisanDashboard() {
       setImageFiles([])
       setShowUploadModal(false)
     } catch (error) {
-      console.error("\n❌❌❌ UPLOAD FAILED ❌❌❌")
-      console.error("Error:", error)
+      console.error("Upload failed:", error)
       
       let errorMessage = "Upload failed!\n\n"
       
       if (error.message && error.message.includes('timeout')) {
-        errorMessage += "⏱️ Upload timed out. Please check your internet connection and try again."
+        errorMessage += "⏱️ Upload timed out. Please check your internet connection."
       } else if (error.code === "storage/unauthorized" || error.code === "permission-denied") {
-        errorMessage += "❌ Permission denied!\n\nYour Firebase Storage rules need to be updated.\n\nGo to Firebase Console → Storage → Rules and update them."
-      } else if (error.code === "storage/unknown") {
-        errorMessage += "⚠️ Unknown storage error.\n\nPlease check:\n- Internet connection\n- Firebase Storage is enabled\n- Storage bucket exists"
-      } else if (error.message && error.message.includes('not initialized')) {
-        errorMessage += error.message
+        errorMessage += "❌ Permission denied! Check Firebase Storage rules."
       } else {
         errorMessage += error.message || "Unknown error occurred"
       }
       
       alert(errorMessage)
-      console.error("Full error details:", {
-        code: error.code,
-        message: error.message,
-        stack: error.stack
-      })
     } finally {
       setUploading(false)
     }
@@ -247,6 +231,14 @@ function ArtisanDashboard() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* CATALOG PROMOTION SECTION - NEW */}
+      <section className="mt-4">
+        <CatalogPromotion 
+          artisanId={user?.uid}
+          artisanName={profile?.displayName || user?.email?.split('@')[0]}
+        />
       </section>
 
       {/* Upload Modal */}

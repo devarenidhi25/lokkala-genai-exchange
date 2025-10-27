@@ -5,3 +5,11 @@ requests
 python-dotenv
 cloudinary
 google-adk
+twilio
+google-cloud-bigquery
+google-cloud-storage
+Pillow
+reportlab
+fastapi
+uvicorn
+firebase-admin

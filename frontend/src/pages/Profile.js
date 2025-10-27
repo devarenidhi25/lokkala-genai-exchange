@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom"
 import { auth } from "../firebase"
 import { getFirestore, doc, getDoc } from "firebase/firestore"
 import { MapPin, Mail, Phone, Package, Calendar, Award } from "lucide-react"
+import CatalogPromotion from "../components/CatalogPromotion"  // ✅ CORRECT
 
 function Profile() {
   const navigate = useNavigate()
@@ -147,6 +148,13 @@ function Profile() {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="mt-4">
+            <CatalogPromotion 
+              artisanId={user?.uid} 
+              artisanName={profile.displayName || user?.email?.split('@')[0]}
+            />
           </div>
 
           {/* Profile Details */}

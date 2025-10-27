@@ -3,11 +3,8 @@ from typing import List
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-# Google Cloud Translation API client
-try:
-    from google.cloud import translate_v3 as translate
-except Exception:
-    from google.cloud import translate as translate
+from google.cloud import translate
+
 
 router = APIRouter(prefix="/translate", tags=["Translation"])
 

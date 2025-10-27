@@ -3,3 +3,4 @@ node_modules/
 dist/
 build/
 backend/keys/*.json
+backend/FirebaseServiceAccountKey.json

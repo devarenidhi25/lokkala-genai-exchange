@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routes.caption_router import router as caption_router
 from routes.insta_router import router as instagram_router
 from routes.translator_router import router as translator_router
+from routes.catalog_router import router as catalog_router
 from dotenv import load_dotenv
 import os
 
@@ -29,6 +30,7 @@ app.add_middleware(
 app.include_router(caption_router)
 app.include_router(instagram_router)
 app.include_router(translator_router)
+app.include_router(catalog_router, prefix="/api/catalog", tags=["catalog"])
 
 
 @app.get("/")
