@@ -1,6 +1,7 @@
 "use client"
 import React, { useState, useEffect } from "react"
 import { useLocation } from "react-router-dom"
+import { getFirestore, collection, getDocs } from "firebase/firestore"
 import SearchFilters from "../components/SearchFilters"
 import IndiaMap from "../components/IndiaMap"
 import ProductCard from "../components/ProductCard"
@@ -81,26 +82,79 @@ const SAMPLE_PRODUCTS = [
   },
 ]
 
-
 function ProductsPage() {
   const location = useLocation()
   const profile = location.state
+  const db = getFirestore()
+  
+  const [allProducts, setAllProducts] = useState(SAMPLE_PRODUCTS)
   const [filtered, setFiltered] = useState(SAMPLE_PRODUCTS)
   const [selectedStateFromMap, setSelectedStateFromMap] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  // Fetch artisan products from Firestore
+  useEffect(() => {
+    async function fetchArtisanProducts() {
+      try {
+        console.log("Fetching artisan products from Firestore...")
+        const usersSnapshot = await getDocs(collection(db, "users"))
+        const artisanProducts = []
+
+        usersSnapshot.forEach((doc) => {
+          const userData = doc.data()
+          
+          // Only process artisan profiles with products
+          if (userData.type === "artisan" && userData.products && userData.products.length > 0) {
+            userData.products.forEach((product, index) => {
+              artisanProducts.push({
+                id: `artisan_${doc.id}_${index}`,
+                name: product.name,
+                price: parseFloat(product.price),
+                category: userData.craftType || "Handmade",
+                state: userData.state || "India",
+                artisan: userData.displayName || userData.email?.split('@')[0] || "Artisan",
+                image: product.images && product.images.length > 0 ? product.images[0] : "https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=1200&auto=format&fit=crop",
+                description: product.description,
+                uploadedAt: product.uploadedAt,
+                artisanId: product.artisanId,
+                allImages: product.images
+              })
+            })
+          }
+        })
+
+        console.log(`Found ${artisanProducts.length} artisan products`)
+        
+        // Combine sample products with artisan products
+        const combinedProducts = [...SAMPLE_PRODUCTS, ...artisanProducts]
+        setAllProducts(combinedProducts)
+        setFiltered(combinedProducts)
+      } catch (error) {
+        console.error("Error fetching artisan products:", error)
+        // If error, just use sample products
+        setAllProducts(SAMPLE_PRODUCTS)
+        setFiltered(SAMPLE_PRODUCTS)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchArtisanProducts()
+  }, [db])
 
   useEffect(() => {
     if (profile?.location) {
-      const res = SAMPLE_PRODUCTS.filter((p) => p.state === profile.location)
-      setFiltered(res.length ? res : SAMPLE_PRODUCTS)
+      const res = allProducts.filter((p) => p.state === profile.location)
+      setFiltered(res.length ? res : allProducts)
     }
-  }, [profile])
+  }, [profile, allProducts])
 
   function handleStateSelect(state) {
     setSelectedStateFromMap(state)
     if (!state) {
-      setFiltered(SAMPLE_PRODUCTS)
+      setFiltered(allProducts)
     } else {
-      const res = SAMPLE_PRODUCTS.filter((p) => p.state === state)
+      const res = allProducts.filter((p) => p.state === state)
       setFiltered(res.length ? res : [])
     }
   }
@@ -140,6 +194,11 @@ function ProductsPage() {
       cursor: "pointer",
       fontSize: "16px",
       padding: "0 4px"
+    },
+    loadingContainer: {
+      textAlign: "center",
+      padding: "40px",
+      color: "#666"
     }
   }
 
@@ -153,7 +212,7 @@ function ProductsPage() {
       )}
 
       <section style={styles.top}>
-        <SearchFilters products={SAMPLE_PRODUCTS} onChange={setFiltered} />
+        <SearchFilters products={allProducts} onChange={setFiltered} />
       </section>
 
       <section style={styles.content}>
@@ -171,7 +230,12 @@ function ProductsPage() {
             </div>
           )}
           
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div style={styles.loadingContainer}>
+              <h3>Loading products...</h3>
+              <p>Fetching handmade products from artisans...</p>
+            </div>
+          ) : filtered.length === 0 ? (
             <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
               <h3>No products found</h3>
               <p>Try selecting a different state or clearing filters</p>
@@ -192,7 +256,7 @@ function ProductsPage() {
             </div>
             <IndiaMap 
               onSelectState={handleStateSelect} 
-              products={SAMPLE_PRODUCTS}
+              products={allProducts}
             />
           </div>
         </aside>
@@ -200,10 +264,6 @@ function ProductsPage() {
 
       {/* Floating Language Selector Bubble */}
       <LanguageSelectorBubble />
-
-      {/* <footer className="footer" style={{ marginTop: 22 }}>
-        © {new Date().getFullYear()} ArtConnect India • Discover and support local artisans
-      </footer> */}
     </main>
   )
 }

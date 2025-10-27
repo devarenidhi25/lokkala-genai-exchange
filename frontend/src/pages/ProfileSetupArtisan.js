@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { getFirestore, doc, setDoc } from "firebase/firestore"
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { auth } from "../firebase"
 import { onAuthStateChanged } from "firebase/auth"
 import { AppStore } from "../utils/storage"
@@ -10,10 +11,12 @@ import { AppStore } from "../utils/storage"
 function ProfileSetupArtisan() {
   const navigate = useNavigate()
   const db = getFirestore()
+  const storage = getStorage()
 
   // auth state
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   // wizard steps
   const [step, setStep] = useState(1)
 
@@ -23,6 +26,7 @@ function ProfileSetupArtisan() {
   const [pincode, setPincode] = useState("")
   const [languages, setLanguages] = useState("Hindi, English")
   const [profilePhoto, setProfilePhoto] = useState(null)
+  const [profilePhotoFile, setProfilePhotoFile] = useState(null)
 
   // Step 2
   const [craftType, setCraftType] = useState("pottery")
@@ -32,6 +36,7 @@ function ProfileSetupArtisan() {
 
   // Step 3
   const [samples, setSamples] = useState([])
+  const [sampleFiles, setSampleFiles] = useState([])
   const [priceRange, setPriceRange] = useState("₹500–₹1000")
 
   // Step 4
@@ -63,14 +68,17 @@ function ProfileSetupArtisan() {
   function onUploadProfile(e) {
     const f = e.target.files?.[0]
     if (!f) return
+    setProfilePhotoFile(f)
     const r = new FileReader()
     r.onload = () => setProfilePhoto(r.result)
     r.readAsDataURL(f)
   }
 
   function onUploadSamples(e) {
-    const files = Array.from(e.target.files || [])
-    const readers = files.slice(0, 5).map(
+    const files = Array.from(e.target.files || []).slice(0, 5)
+    setSampleFiles(files)
+    
+    const readers = files.map(
       (f) =>
         new Promise((res) => {
           const r = new FileReader()
@@ -96,29 +104,50 @@ function ProfileSetupArtisan() {
         return
       }
 
+      setSaving(true)
+
+      // Upload profile photo to Firebase Storage if exists
+      let profilePhotoUrl = profilePhoto
+      if (profilePhotoFile) {
+        const profileRef = ref(storage, `profiles/${user.uid}/profile_${Date.now()}_${profilePhotoFile.name}`)
+        await uploadBytes(profileRef, profilePhotoFile)
+        profilePhotoUrl = await getDownloadURL(profileRef)
+      }
+
+      // Upload sample images to Firebase Storage
+      const sampleUrls = await Promise.all(
+        sampleFiles.map(async (file, index) => {
+          const sampleRef = ref(storage, `profiles/${user.uid}/samples/${Date.now()}_${index}_${file.name}`)
+          await uploadBytes(sampleRef, file)
+          return await getDownloadURL(sampleRef)
+        })
+      )
+
       const profile = {
         type: "artisan",       // role identifier
         village,
         state,
         pincode,
         languages,
-        profilePhoto,
+        profilePhoto: profilePhotoUrl,
         craftType,
         experience,
         story,
         materials,
-        samples,
+        samples: sampleUrls.length > 0 ? sampleUrls : samples,
         priceRange,
         whatsapp,
         uid: user.uid,
         email: user.email,
         displayName: user.displayName || "",
+        products: [], // Initialize empty products array
+        createdAt: new Date().toISOString()
       }
 
       // 🔍 Debug
       console.log("Saving artisan profile:", user.uid, profile)
 
-      // Save to Firestore under "profiles" collection
+      // Save to Firestore under "users" collection
       await setDoc(doc(db, "users", user.uid), profile)
 
       console.log("✅ Artisan profile saved successfully")
@@ -132,6 +161,8 @@ function ProfileSetupArtisan() {
     } catch (err) {
       console.error("❌ Firestore error:", err)
       alert("Error saving profile: " + err.message)
+    } finally {
+      setSaving(false)
     }
   }
   // === end save ===
@@ -164,7 +195,6 @@ function ProfileSetupArtisan() {
             <div className={`step ${step >= 4 ? "active" : ""}`}></div>
           </div>
 
-          {/* === Steps UI (same as your code) === */}
           {step === 1 && (
             <>
               <div className="row mt-3">
@@ -211,7 +241,7 @@ function ProfileSetupArtisan() {
                 <input className="input" type="file" accept="image/*" onChange={onUploadProfile} />
                 {profilePhoto && (
                   <img
-                    src={profilePhoto || "/placeholder.svg"}
+                    src={profilePhoto}
                     alt="Profile"
                     style={{ width: 100, height: 100, borderRadius: 12, marginTop: 8, objectFit: "cover" }}
                   />
@@ -279,7 +309,7 @@ function ProfileSetupArtisan() {
                   {samples.map((s, i) => (
                     <img
                       key={i}
-                      src={s || "/placeholder.svg"}
+                      src={s}
                       alt={`Sample ${i + 1}`}
                       style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover", borderRadius: 10 }}
                     />
@@ -313,7 +343,7 @@ function ProfileSetupArtisan() {
                 <input className="input" type="file" accept="image/*" onChange={onUploadProfile} />
                 {profilePhoto && (
                   <img
-                    src={profilePhoto || "/placeholder.svg"}
+                    src={profilePhoto}
                     alt="Profile"
                     style={{ width: 100, height: 100, borderRadius: 12, marginTop: 8, objectFit: "cover" }}
                   />
@@ -324,7 +354,7 @@ function ProfileSetupArtisan() {
 
           <div className="form-actions">
             {step > 1 && (
-              <button className="btn" onClick={prev}>
+              <button className="btn" onClick={prev} disabled={saving}>
                 Back
               </button>
             )}
@@ -334,8 +364,8 @@ function ProfileSetupArtisan() {
               </button>
             )}
             {step === 4 && (
-              <button className="btn btn-primary" onClick={save}>
-                Save & Continue
+              <button className="btn btn-primary" onClick={save} disabled={saving}>
+                {saving ? "Saving..." : "Save & Continue"}
               </button>
             )}
           </div>
