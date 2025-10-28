@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { Share2, FileText, Eye, Send, Download, Loader, CheckCircle, AlertCircle } from "lucide-react"
-import BACKEND_URL from "../config"   // ✅ Import backend URL here
+import BACKEND_URL from "../config"  // ✅ Import backend URL here
 
 
 function CatalogPromotion({ artisanId, artisanName }) {
