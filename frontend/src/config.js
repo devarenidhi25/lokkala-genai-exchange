@@ -1,3 +1,2 @@
-// src/config.js
-const BACKEND_URL = "https://google-adk-12.onrender.com"
+const BACKEND_URL = "http://127.0.0.1:8000"
 export default BACKEND_URL

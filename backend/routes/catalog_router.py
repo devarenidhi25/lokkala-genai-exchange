@@ -97,55 +97,29 @@ async def share_whatsapp_bulk(request: BulkShareRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/history/{artisan_id}")
-async def get_catalog_history(artisan_id: str, limit: int = 10):
-    """Get catalog generation history"""
+async def get_catalog_history(artisan_id: str, limit: int = 5):
     try:
-        from firebase_config import db
-        
-        catalogs_ref = db.collection('catalogs')\
-            .where('artisan_id', '==', artisan_id)\
+        docs = db.collection('catalogs').where('artisan_id', '==', artisan_id)\
             .order_by('created_at', direction=firestore.Query.DESCENDING)\
-            .limit(limit)
-        
-        catalogs = []
-        for doc in catalogs_ref.stream():
-            catalog_data = doc.to_dict()
-            catalogs.append(catalog_data)
-        
-        return {
-            'success': True,
-            'catalogs': catalogs
-        }
-    
+            .limit(limit).stream()
+        history = [doc.to_dict() for doc in docs]
+        return {"success": True, "data": history}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"❌ Error fetching catalog history: {e}")
+        return {"success": False, "data": []}
+
 
 @router.get("/shares/{artisan_id}")
-async def get_share_history(artisan_id: str, limit: int = 20):
-    """Get WhatsApp share history"""
+async def get_catalog_shares(artisan_id: str, limit: int = 10):
     try:
-        from firebase_config import db
-        from firebase_admin import firestore
-        
-        shares_ref = db.collection('whatsapp_shares')\
-            .where('artisan_id', '==', artisan_id)\
+        docs = db.collection('whatsapp_shares').where('artisan_id', '==', artisan_id)\
             .order_by('created_at', direction=firestore.Query.DESCENDING)\
-            .limit(limit)
-        
-        shares = []
-        for doc in shares_ref.stream():
-            share_data = doc.to_dict()
-            # Mask phone number for privacy
-            if 'phone_number' in share_data:
-                phone = share_data['phone_number']
-                share_data['phone_number'] = phone[:5] + '*****' + phone[-2:] if len(phone) > 7 else phone
-            shares.append(share_data)
-        
-        return {
-            'success': True,
-            'shares': shares
-        }
-    
+            .limit(limit).stream()
+        shares = [doc.to_dict() for doc in docs]
+        return {"success": True, "data": shares}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"❌ Error fetching WhatsApp shares: {e}")
+        return {"success": False, "data": []}
+
