@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect } from "react"
 import { Share2, FileText, Eye, Send, Download, Loader, CheckCircle, AlertCircle } from "lucide-react"
+import BACKEND_URL from "../config"   // ✅ Import backend URL here
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000"
 
 function CatalogPromotion({ artisanId, artisanName }) {
+  const API_BASE_URL = BACKEND_URL  // ✅ Use imported constant
   const [loading, setLoading] = useState(false)
   const [generatingCatalog, setGeneratingCatalog] = useState(false)
   const [sharingWhatsApp, setSharingWhatsApp] = useState(false)
