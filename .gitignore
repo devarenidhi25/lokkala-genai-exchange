@@ -4,3 +4,4 @@ dist/
 build/
 backend/keys/*.json
 backend/FirebaseServiceAccountKey.json
+__pycache__/
