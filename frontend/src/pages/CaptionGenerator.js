@@ -44,56 +44,56 @@ export default function CaptionGenerator() {
   }
 
   async function onGenerate() {
-    setError("")
-    setResult(null)
-    setLoading(true)
+    setError("");
+    setResult(null);
+    setLoading(true);
 
     try {
-      // Check if we have an image file
-      if (!imageFile) {
-        throw new Error("Please upload an image file")
-      }
+      if (!imageFile) throw new Error("Please upload an image file");
 
-      // Create FormData to send the file
-      const formData = new FormData()
-      formData.append('image', imageFile, imageFile.name)
+      const formData = new FormData();
+      formData.append("file", imageFile, imageFile.name);
 
-      // Fixed endpoint URL to match backend
-      const res = await fetch(`${BACKEND_URL}/caption/generate`, {
+      const res = await fetch(`${BACKEND_URL}/instagram/caption`, {
         method: "POST",
         body: formData,
-        // Don't set Content-Type header - let browser set it with boundary for FormData
-      })
+      });
 
-      if (!res.ok) {
-        const text = await res.text()
-        throw new Error(text || "Server error")
+      const body = await res.json();
+      console.log("🧾 Backend caption response:", body);
+
+      // If backend returned error
+      if (!res.ok || body.status !== "success") {
+        throw new Error(body.detail || body.error || "Failed to generate captions");
       }
 
-      const body = await res.json()
-      if (!body.success) throw new Error(body.error || "Failed to generate captions")
+      // ✅ Use the actual response field from backend: body.captions
+      const captions = body.captions || [];
 
-      // Adapt the backend response to frontend format
-      const caption = body.caption || "No caption generated"
-      const postResult = body.post_result || "No post result"
-      
-      // Create variations array to match existing UI
+      if (!captions.length) throw new Error("No captions generated");
+
+      // Adapt backend data to UI-friendly structure
+      const variations = captions.map((c) => ({
+        short: c,
+        long: c,
+        hashtags: [],
+        post_sample: c,
+      }));
+
       setResult({
-        variations: [{
-          short: caption,
-          long: caption,
-          hashtags: [], // Backend doesn't return hashtags, so empty array
-          post_sample: caption
-        }],
-        marketing_tips: postResult ? [postResult] : []
-      })
-      
+        variations,
+        marketing_tips: ["Try different product angles or lighting for more engagement!"],
+      });
+
+      setError(null);
     } catch (err) {
-      setError(err.message || String(err))
+      console.error("❌ Caption generation error:", err);
+      setError(err.message || "Failed to generate captions");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
+
 
   const copyText = async (text) => {
     try {

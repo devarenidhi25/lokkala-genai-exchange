@@ -39,7 +39,7 @@ async def generate_caption(file: UploadFile):
             temp_file.write(content)
             temp_path = temp_file.name
 
-        # Create unique session ID for each request
+        # Create unique session ID
         session_id = f"session_{os.urandom(8).hex()}"
         await session_service.create_session(
             app_name=APP_NAME,
@@ -47,12 +47,27 @@ async def generate_caption(file: UploadFile):
             session_id=session_id
         )
 
-        # Send message to agent with the image path
+        # 🪄 Improved Prompt for Digital Promotion
+        message_text = f"""
+        You are a professional social media marketer and copywriter.
+
+        Generate 3 short, emoji-rich, Instagram-ready captions for a handmade or artisan product 
+        shown in the image located at: {temp_path}.
+
+        ✨ Guidelines:
+        - Make captions under 200 characters each.
+        - Use 2–4 well-placed emojis for visual rhythm.
+        - Use a warm, lifestyle or storytelling tone (not too poetic).
+        - Include a light call-to-action (e.g., “Tap ❤️ if you love handmade art!” or “Which one’s your fave?”).
+        - End each caption with 3–7 relevant, trending hashtags (short and aesthetic).
+        - Each caption should be clearly separated by a blank line.
+        """
+
         message = types.Content(
             role="user",
-            parts=[types.Part(text=f"Generate Instagram captions for the image at: {temp_path}")]
+            parts=[types.Part(text=message_text)]
         )
-        
+
         captions = []
 
         # Run agent
@@ -62,20 +77,22 @@ async def generate_caption(file: UploadFile):
             new_message=message
         ):
             if event.is_final_response():
-                # Extract captions from response
                 response_text = event.content.parts[0].text
                 captions = [opt.strip() for opt in response_text.split("\n\n") if opt.strip()][:3]
 
         if not captions:
             raise HTTPException(status_code=500, detail="Failed to generate captions")
 
-        return {"captions": captions, "status": "success"}
+        return {
+            "captions": captions,
+            "status": "success",
+            "style": "short-emoji-lifestyle"
+        }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
 
     finally:
-        # Clean up temporary file
         if temp_path and os.path.exists(temp_path):
             try:
                 os.remove(temp_path)
