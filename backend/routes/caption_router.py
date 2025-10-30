@@ -56,7 +56,7 @@ async def generate_caption(file: UploadFile):
 
         ✨ Guidelines:
         - Make captions under 200 characters each.
-        - Use 2–4 well-placed emojis for visual rhythm.
+        - Use 3–5 well-placed emojis for visual rhythm.
         - Use a warm, lifestyle or storytelling tone (not too poetic).
         - Include a light call-to-action (e.g., “Tap ❤️ if you love handmade art!” or “Which one’s your fave?”).
         - End each caption with 3–7 relevant, trending hashtags (short and aesthetic).

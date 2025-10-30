@@ -12,14 +12,13 @@ if not api_key:
 
 genai.configure(api_key=api_key)
 
-
 def generate_captions(image_path: str) -> dict:
     """
     Generates 3 Instagram caption options for the given image file.
-
+    
     Args:
         image_path: Path to the image file
-
+        
     Returns:
         dict with 'captions' key containing list of caption strings
     """
@@ -29,7 +28,7 @@ def generate_captions(image_path: str) -> dict:
     try:
         # Open and prepare image
         img = Image.open(image_path)
-
+        
         # Create the prompt
         prompt = """You are an Instagram caption specialist.
 Analyze this image and generate 3 creative Instagram captions with relevant hashtags.
@@ -49,12 +48,13 @@ Hashtags: #tag1 #tag2 #tag3
         # Use the correct Gemini API for vision
         model = genai.GenerativeModel('gemini-2.0-flash-exp')
         response = model.generate_content([prompt, img])
+        
         # Extract and parse captions
         caption_text = response.text
         captions = [opt.strip() for opt in caption_text.split("\n\n") if opt.strip()][:3]
-
+        
         return {"captions": captions}
-
+        
     except Exception as e:
         return {"error": str(e), "captions": []}
 

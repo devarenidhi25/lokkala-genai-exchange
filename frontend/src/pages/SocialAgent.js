@@ -16,52 +16,58 @@ function SocialAgent() {
     const file = e.target.files[0]
     if (file) {
       setSelectedFile(file)
-      // Create preview URL
       const previewUrl = URL.createObjectURL(file)
       setPreview(previewUrl)
-      // Reset previous results
       setResult(null)
       setCompleted(false)
     }
   }
 
-  // Call backend Instagram Poster Agent
+  // Post to Instagram with auto-generated caption
   const handlePost = async () => {
-    if (!selectedFile) return alert("Please select an image file")
+    if (!selectedFile) {
+      alert("Please select an image file")
+      return
+    }
     
     setLoading(true)
     setCompleted(false)
+    setResult(null)
     
     try {
-      // Create FormData for file upload
       const formData = new FormData()
       formData.append('image', selectedFile)
-      formData.append('caption', '') // Empty caption - agent will generate one
 
-      // Use the Instagram post endpoint
+      console.log("📤 Posting to:", `${BACKEND_URL}/instagram/post`)
+
       const res = await axios.post(`${BACKEND_URL}/instagram/post`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       })
 
-      console.log("Response:", res.data)
+      console.log("📥 Response:", res.data)
+      
       setResult(res.data)
-      if (res.data.success) setCompleted(true)
+      if (res.data.success) {
+        setCompleted(true)
+      }
     } catch (err) {
-      console.error("Error:", err)
+      console.error("❌ Error:", err)
+      const errorMsg = err.response?.data?.message || err.response?.data?.detail || err.message
       setResult({ 
         success: false, 
-        message: err.response?.data?.detail || err.message 
+        message: errorMsg
       })
       setCompleted(false)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
-  // WhatsApp share
+  // Share on WhatsApp
   const shareWhatsApp = (caption) => {
-    const text = encodeURIComponent(caption || "Check out my handcrafted product! #Handcrafted #MadeInIndia")
+    const text = encodeURIComponent(caption || "Check out my handcrafted product! 🌟 #Handcrafted #MadeInIndia")
     window.open(`https://wa.me/?text=${text}`, "_blank")
   }
 
@@ -71,7 +77,6 @@ function SocialAgent() {
     setPreview("")
     setResult(null)
     setCompleted(false)
-    // Clear file input
     const fileInput = document.getElementById('imageInput')
     if (fileInput) fileInput.value = ''
   }
@@ -79,7 +84,9 @@ function SocialAgent() {
   return (
     <main className="container mt-4">
       <h2 className="bold">📲 Social Media Agent</h2>
-      <p className="small text-muted">Upload an image to generate captions and post to Instagram automatically!</p>
+      <p className="small text-muted">
+        Upload an image to auto-generate captions and post directly to Instagram!
+      </p>
 
       {/* File Upload Section */}
       <div className="mt-3">
@@ -106,7 +113,8 @@ function SocialAgent() {
             />
           </div>
           <p className="small">
-            <strong>Selected:</strong> {selectedFile?.name} ({(selectedFile?.size / 1024 / 1024).toFixed(2)} MB)
+            <strong>Selected:</strong> {selectedFile?.name} 
+            ({(selectedFile?.size / 1024 / 1024).toFixed(2)} MB)
           </p>
           <button 
             className="btn btn-outline-secondary btn-sm" 
@@ -117,18 +125,25 @@ function SocialAgent() {
         </div>
       )}
 
-      {/* Action Buttons */}
+      {/* Action Button */}
       <div className="mt-3">
         <button
           className="btn btn-success"
           onClick={handlePost}
           disabled={loading || !selectedFile}
         >
-          {loading ? "Processing..." : "Generate Caption & Post to Instagram"}
+          {loading ? (
+            <>
+              <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+              Processing...
+            </>
+          ) : (
+            "🚀 Generate Caption & Post to Instagram"
+          )}
         </button>
       </div>
 
-      {/* Work Completed Banner */}
+      {/* Success Banner */}
       {completed && (
         <div className="alert alert-success mt-3 d-flex align-items-center">
           <span style={{ fontSize: "1.5rem", marginRight: "0.5rem" }}>✅</span>
@@ -138,23 +153,28 @@ function SocialAgent() {
         </div>
       )}
 
-      {/* Result Details */}
+      {/* Error Message */}
       {result && !result.success && (
         <div className="alert alert-danger mt-3">
-          <p><strong>Error:</strong> {result.message}</p>
+          <strong>❌ Error:</strong> {result.message}
         </div>
       )}
 
-      {result && result.success && result.caption && (
+      {/* Success Details */}
+      {result && result.success && (
         <div className="mt-3">
           <div className="card">
             <div className="card-body">
               <h5 className="card-title">✨ Posted Successfully!</h5>
               
-              <div className="mb-3">
-                <strong>Caption:</strong>
-                <p className="card-text mt-2">{result.caption}</p>
-              </div>
+              {result.caption && (
+                <div className="mb-3">
+                  <strong>Generated Caption:</strong>
+                  <p className="card-text mt-2" style={{ whiteSpace: "pre-wrap" }}>
+                    {result.caption}
+                  </p>
+                </div>
+              )}
 
               {result.post_result && (
                 <div className="mb-3">
@@ -163,21 +183,39 @@ function SocialAgent() {
                 </div>
               )}
 
-              <button 
-                className="btn btn-primary me-2" 
-                onClick={() => shareWhatsApp(result.caption)}
-              >
-                📱 Share on WhatsApp
-              </button>
+              <div className="d-flex gap-2">
+                <button 
+                  className="btn btn-primary" 
+                  onClick={() => shareWhatsApp(result.caption)}
+                >
+                  📱 Share on WhatsApp
+                </button>
 
-              <button 
-                className="btn btn-outline-secondary" 
-                onClick={() => navigator.clipboard.writeText(result.caption)}
-              >
-                📋 Copy Caption
-              </button>
+                <button 
+                  className="btn btn-outline-secondary" 
+                  onClick={() => {
+                    navigator.clipboard.writeText(result.caption)
+                    alert("✅ Caption copied to clipboard!")
+                  }}
+                >
+                  📋 Copy Caption
+                </button>
+              </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Loading State Details */}
+      {loading && (
+        <div className="alert alert-info mt-3">
+          <strong>🔄 Processing your request...</strong>
+          <ul className="mt-2 mb-0 small">
+            <li>Analyzing image with AI</li>
+            <li>Generating engaging caption</li>
+            <li>Uploading to Cloudinary</li>
+            <li>Publishing to Instagram</li>
+          </ul>
         </div>
       )}
     </main>

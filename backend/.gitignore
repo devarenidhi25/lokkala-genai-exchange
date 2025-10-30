@@ -1,3 +1,5 @@
 # Ignore secrets
 backend/keys/*.json
 *.env
+__pycache__/
+*.pyc
