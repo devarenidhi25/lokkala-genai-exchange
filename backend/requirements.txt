@@ -19,3 +19,5 @@ playsound
 gtts
 openai-whisper
 reportlab
+ffmpeg-python
+pydub
