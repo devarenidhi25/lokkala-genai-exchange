@@ -44,17 +44,17 @@ function ArtisanDashboard() {
   }, [db])
 
   const mockInsights = {
-    colorTrends: [
-      { color: "Blue", percentage: 35, clicks: 450 },
-      { color: "Red", percentage: 25, clicks: 320 },
-      { color: "Green", percentage: 20, clicks: 260 },
-      { color: "Gold", percentage: 20, clicks: 250 }
-    ],
-    motifTrends: [
-      { motif: "Floral", percentage: 40 },
-      { motif: "Geometric", percentage: 30 },
-      { motif: "Traditional", percentage: 30 }
-    ],
+    // colorTrends: [
+    //   { color: "Blue", percentage: 35, clicks: 450 },
+    //   { color: "Red", percentage: 25, clicks: 320 },
+    //   { color: "Green", percentage: 20, clicks: 260 },
+    //   { color: "Gold", percentage: 20, clicks: 250 }
+    // ],
+    // motifTrends: [
+    //   { motif: "Floral", percentage: 40 },
+    //   { motif: "Geometric", percentage: 30 },
+    //   { motif: "Traditional", percentage: 30 }
+    // ],
     priceBands: [
       { range: "₹2000-5000", percentage: 45 },
       { range: "₹5000-10000", percentage: 35 },
@@ -367,8 +367,8 @@ function ArtisanDashboard() {
           </div>
 
           {/* Tabs */}
-          <div style={{ borderBottom: "1px solid var(--border)", display: "flex", gap: 0, background: "white" }}>
-            <button
+          
+            {/* <button
               onClick={() => setActiveTab("trends")}
               className="btn"
               style={{
@@ -382,7 +382,8 @@ function ArtisanDashboard() {
             >
               <BarChart3 style={{ width: "16px", height: "16px", display: "inline", marginRight: "0.5rem" }} />
               Trend Radar
-            </button>
+            </button> */}
+          <div style={{ borderBottom: "1px solid var(--border)", display: "flex", gap: 0, background: "white" }}>
             <button
               onClick={() => setActiveTab("audience")}
               className="btn"
@@ -395,7 +396,7 @@ function ArtisanDashboard() {
                 padding: "0.75rem 1.5rem"
               }}
             >
-              <Target style={{ width: "16px", height: "16px", display: "inline", marginRight: "0.5rem" }} />
+              <BarChart3 style={{ width: "16px", height: "16px", display: "inline", marginRight: "0.5rem" }} />
               Target Audience
             </button>
             <button
@@ -416,10 +417,9 @@ function ArtisanDashboard() {
           </div>
 
           {/* Tab Content */}
-          <div className="card-body">
-            {activeTab === "trends" && (
+          
+            {/* {activeTab === "trends" && (
               <div>
-                {/* Key Insights Cards */}
                 <div style={{ marginBottom: "2rem" }}>
                   <h3 className="bold" style={{ marginBottom: "1rem", fontSize: "1.1rem" }}>📊 Key Insights</h3>
                   <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "1rem" }}>
@@ -441,9 +441,8 @@ function ArtisanDashboard() {
                   </div>
                 </div>
 
-                {/* Trend Charts */}
                 <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.5rem" }}>
-                  {/* Color Trends */}
+                  
                   <div className="card">
                     <div className="card-body">
                       <h4 className="bold" style={{ marginBottom: "1rem", fontSize: "1rem" }}>🎨 Color Trends</h4>
@@ -472,7 +471,7 @@ function ArtisanDashboard() {
                     </div>
                   </div>
 
-                  {/* Motif Trends */}
+                  
                   <div className="card">
                     <div className="card-body">
                       <h4 className="bold" style={{ marginBottom: "1rem", fontSize: "1rem" }}>🌸 Popular Motifs</h4>
@@ -501,7 +500,7 @@ function ArtisanDashboard() {
                   </div>
                 </div>
 
-                {/* Price Bands */}
+                
                 <div className="card mt-4">
                   <div className="card-body">
                     <h4 className="bold" style={{ marginBottom: "1rem", fontSize: "1rem" }}>💰 Best Performing Price Bands</h4>
@@ -520,8 +519,8 @@ function ArtisanDashboard() {
                   </div>
                 </div>
               </div>
-            )}
-
+            )} */}
+          <div className="card-body">
             {activeTab === "audience" && (
               <div>
                 <div style={{ marginBottom: "2rem" }}>
