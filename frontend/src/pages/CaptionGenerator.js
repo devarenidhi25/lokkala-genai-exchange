@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
+import { Mic, Square } from "lucide-react"
 import BACKEND_URL from "../config"
 
 const styles = {
@@ -18,11 +19,47 @@ const styles = {
   sub: { color: "#475569", marginTop: 6 },
   input: { width: "100%", padding: 12, borderRadius: 8, border: "1px solid #e6e9ee", resize: "vertical" },
   fileRow: { display: "flex", gap: 12, alignItems: "center", marginTop: 12 },
+  dropZone: {
+    border: "2px dashed #cbd5e1",
+    borderRadius: 10,
+    padding: "20px",
+    textAlign: "center",
+    background: "#f9fafb",
+    transition: "border-color 0.2s, background-color 0.2s",
+    cursor: "pointer",
+  },
+  dropZoneHover: {
+    borderColor: "#6366f1",
+    backgroundColor: "#eef2ff",
+  },
   preview: { width: 140, height: 140, objectFit: "cover", borderRadius: 8, border: "1px solid #e6e9ee" },
   button: { marginTop: 16, padding: "12px 18px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer" },
   smallMuted: { color: "#64748b", fontSize: 13 },
   captionCard: { marginTop: 16, padding: 14, borderRadius: 10, border: "1px solid #eef2ff", background: "#fbfdff" },
-  tag: { display: "inline-block", padding: "6px 10px", background: "#eef2ff", color: "#0b1227", borderRadius: 999, marginRight: 8, marginTop: 8 }
+  tag: { display: "inline-block", padding: "6px 10px", background: "#eef2ff", color: "#0b1227", borderRadius: 999, marginRight: 8, marginTop: 8 },
+  micButton: {
+    padding: "8px 12px",
+    border: "1px solid #e6e9ee",
+    borderRadius: 8,
+    background: "#fff",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    fontSize: "0.9rem"
+  },
+  recordingButton: {
+    padding: "8px 12px",
+    border: "1px solid #dc2626",
+    borderRadius: 8,
+    background: "#fee2e2",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    fontSize: "0.9rem",
+    color: "#dc2626"
+  }
 }
 
 export default function CaptionGenerator() {
@@ -31,69 +68,147 @@ export default function CaptionGenerator() {
   const [imagePreview, setImagePreview] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [result, setResult] = useState(null) // { variations: [...], marketing_tips: [...] }
+  const [result, setResult] = useState(null)
+  const [isRecording, setIsRecording] = useState(false)
+  const [mediaRecorder, setMediaRecorder] = useState(null)
+  const [recordingLanguage, setRecordingLanguage] = useState("hi-IN")
+  const [translating, setTranslating] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
 
-  const handleFileChange = (e) => {
-    const f = e.target.files?.[0] || null
-    setImageFile(f)
+  const LANGUAGES = {
+    "mr-IN": "Marathi",
+    "hi-IN": "Hindi",
+    "ta-IN": "Tamil",
+    "te-IN": "Telugu",
+    "ml-IN": "Malayalam",
+    "gu-IN": "Gujarati",
+    "or-IN": "Odia",
+    "bn-IN": "Bengali",
+    "pa-IN": "Punjabi",
+    "kn-IN": "Kannada",
+  }
+
+  const handleFileChange = (f) => {
     if (f) {
+      setImageFile(f)
       setImagePreview(URL.createObjectURL(f))
     } else {
+      setImageFile(null)
       setImagePreview(null)
     }
   }
 
-  async function onGenerate() {
-    setError("");
-    setResult(null);
-    setLoading(true);
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setDragOver(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file && file.type.startsWith("image/")) handleFileChange(file)
+  }
 
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    setDragOver(true)
+  }
+
+  const handleDragLeave = () => setDragOver(false)
+
+  async function startRecording() {
     try {
-      if (!imageFile) throw new Error("Please upload an image file");
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      const audioChunks = []
 
-      const formData = new FormData();
-      formData.append("file", imageFile, imageFile.name);
+      recorder.ondataavailable = (event) => {
+        audioChunks.push(event.data)
+      }
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: "audio/webm" })
+        await translateAudio(audioBlob)
+        stream.getTracks().forEach(track => track.stop())
+      }
+
+      recorder.start()
+      setMediaRecorder(recorder)
+      setIsRecording(true)
+    } catch (err) {
+      console.error("Microphone error:", err)
+      setError("Could not access microphone. Please check permissions.")
+    }
+  }
+
+  function stopRecording() {
+    if (mediaRecorder) {
+      mediaRecorder.stop()
+      setIsRecording(false)
+    }
+  }
+
+  async function translateAudio(audioBlob) {
+    setTranslating(true)
+    setError("")
+    try {
+      const formData = new FormData()
+      formData.append("file", audioBlob, "recording.webm")
+      formData.append("lang_code", recordingLanguage)
+
+      const res = await fetch(`${BACKEND_URL}/translator/translate`, {
+        method: "POST",
+        body: formData,
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.detail || data.message || "Translation failed")
+      if (data.status !== "success") throw new Error(data.detail || data.message || "Translation failed")
+
+      const translatedText = data.translation || ""
+      if (translatedText) setPrompt(translatedText)
+      else throw new Error("No translation text received")
+    } catch (err) {
+      console.error(err)
+      setError(err.message)
+    } finally {
+      setTranslating(false)
+    }
+  }
+
+  async function onGenerate() {
+    setError("")
+    setResult(null)
+    setLoading(true)
+    try {
+      if (!imageFile) throw new Error("Please upload an image file")
+      const formData = new FormData()
+      formData.append("file", imageFile, imageFile.name)
+      formData.append("prompt", prompt)
 
       const res = await fetch(`${BACKEND_URL}/instagram/caption`, {
         method: "POST",
         body: formData,
-      });
+      })
+      const body = await res.json()
+      if (!res.ok || body.status !== "success") throw new Error(body.detail || body.error || "Failed to generate captions")
 
-      const body = await res.json();
-      console.log("🧾 Backend caption response:", body);
+      const captions = body.captions || []
+      if (!captions.length) throw new Error("No captions generated")
 
-      // If backend returned error
-      if (!res.ok || body.status !== "success") {
-        throw new Error(body.detail || body.error || "Failed to generate captions");
-      }
-
-      // ✅ Use the actual response field from backend: body.captions
-      const captions = body.captions || [];
-
-      if (!captions.length) throw new Error("No captions generated");
-
-      // Adapt backend data to UI-friendly structure
       const variations = captions.map((c) => ({
         short: c,
         long: c,
         hashtags: [],
         post_sample: c,
-      }));
+      }))
 
       setResult({
         variations,
         marketing_tips: ["Try different product angles or lighting for more engagement!"],
-      });
-
-      setError(null);
+      })
     } catch (err) {
-      console.error("❌ Caption generation error:", err);
-      setError(err.message || "Failed to generate captions");
+      console.error(err)
+      setError(err.message)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
-
 
   const copyText = async (text) => {
     try {
@@ -109,22 +224,83 @@ export default function CaptionGenerator() {
       <div style={styles.header}>
         <div>
           <div style={styles.title}>📝 Caption Generator</div>
-          <div style={styles.sub}>Generate social-ready captions for artisan products — with optional image understanding and marketing tips.</div>
+          <div style={styles.sub}>
+            Generate social-ready captions for artisan products — with optional image understanding and marketing tips.
+          </div>
         </div>
       </div>
 
-      <textarea
-        placeholder="Describe the product (optional) — e.g. 'Handloom cotton saree, indigo dye, small-batch from Maharashtra'"
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        rows={4}
-        style={{ ...styles.input, marginTop: 12 }}
-      />
+      {/* Prompt + Mic */}
+      <div style={{ marginTop: 12 }}>
+        <div style={{ display: "flex", alignItems: "start", gap: "0.75rem" }}>
+          <textarea
+            placeholder="Describe the product (optional) — e.g. 'Handloom cotton saree, indigo dye, small-batch from Maharashtra'"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            rows={4}
+            style={{ ...styles.input, marginTop: 0, flex: 1 }}
+          />
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <select
+              value={recordingLanguage}
+              onChange={(e) => setRecordingLanguage(e.target.value)}
+              style={{ padding: "8px", borderRadius: 8, border: "1px solid #e6e9ee", fontSize: "0.85rem" }}
+              disabled={isRecording || translating}
+            >
+              {Object.entries(LANGUAGES).map(([code, name]) => (
+                <option key={code} value={code}>{name}</option>
+              ))}
+            </select>
+            {!isRecording ? (
+              <button
+                onClick={startRecording}
+                style={{ ...styles.micButton, opacity: translating ? 0.6 : 1, cursor: translating ? "not-allowed" : "pointer" }}
+                disabled={translating}
+                title="Record voice description"
+              >
+                <Mic style={{ width: "18px", height: "18px" }} />
+                {translating ? "Processing..." : "Record"}
+              </button>
+            ) : (
+              <button onClick={stopRecording} style={styles.recordingButton} title="Stop recording">
+                <Square style={{ width: "18px", height: "18px", fill: "currentColor" }} />
+                Stop
+              </button>
+            )}
+          </div>
+        </div>
+        <div style={styles.smallMuted}>💡 Tip: You can type or use voice input in any Indian language</div>
+      </div>
 
+      {/* Drag & Drop File Upload */}
       <div style={styles.fileRow}>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", fontSize: 13, color: "#374151", marginBottom: 6 }}>Upload product image (required)</label>
-          <input type="file" accept="image/*" onChange={handleFileChange} />
+          <label style={{ display: "block", fontSize: 13, color: "#374151", marginBottom: 6 }}>
+            Upload product image (required)
+          </label>
+
+          <div
+            style={{
+              ...styles.dropZone,
+              ...(dragOver ? styles.dropZoneHover : {}),
+            }}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => document.getElementById("fileInput").click()}
+          >
+            <p style={{ margin: 0, color: "#475569" }}>
+              Drag & drop your image here, or <b style={{ color: "#4f46e5" }}>click to choose</b>
+            </p>
+            <input
+              id="fileInput"
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={(e) => handleFileChange(e.target.files?.[0])}
+            />
+          </div>
+
           <div style={styles.smallMuted}>Tip: a clean single-product photo works best.</div>
         </div>
 
@@ -152,7 +328,13 @@ export default function CaptionGenerator() {
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
                   <div>
                     <div style={{ fontWeight: 700, color: "#0f172a" }}>Generated Caption</div>
-                    <div style={{ marginTop: 8, color: "#0b1227" }}>{v.short || v.post_sample || v.long}</div>
+                    <div
+                      style={{ marginTop: 8, color: "#0b1227" }}
+                      dangerouslySetInnerHTML={{
+                        __html: (v.short || v.post_sample || v.long || "").replace(/\*\*(.*?)\*\*/g, "<b>$1</b>"),
+                      }}
+                    ></div>
+
                     {v.hashtags && v.hashtags.length > 0 && (
                       <div style={{ marginTop: 10 }}>
                         {v.hashtags.slice(0, 10).map((h, i) => (
@@ -165,10 +347,16 @@ export default function CaptionGenerator() {
                   </div>
 
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    <button onClick={() => copyText(v.short || v.post_sample || v.long)} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #e6e9ee", background: "#fff" }}>
+                    <button
+                      onClick={() => copyText(v.short || v.post_sample || v.long)}
+                      style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #e6e9ee", background: "#fff" }}
+                    >
                       Copy
                     </button>
-                    <button onClick={() => alert(v.long || "No long caption")} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #e6e9ee", background: "#fff" }}>
+                    <button
+                      onClick={() => alert(v.long || "No long caption")}
+                      style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #e6e9ee", background: "#fff" }}
+                    >
                       View long
                     </button>
                   </div>

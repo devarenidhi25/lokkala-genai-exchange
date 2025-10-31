@@ -12,49 +12,29 @@ if not api_key:
 
 genai.configure(api_key=api_key)
 
-def generate_captions(image_path: str) -> dict:
-    """
-    Generates 3 Instagram caption options for the given image file.
-    
-    Args:
-        image_path: Path to the image file
-        
-    Returns:
-        dict with 'captions' key containing list of caption strings
-    """
+def generate_captions(image_path: str, prompt: str = "") -> dict:
     if not image_path or not os.path.exists(image_path):
-        return {"error": "Image file not found", "captions": []}
+        return {"error": "Image not found", "captions": []}
 
     try:
-        # Open and prepare image
         img = Image.open(image_path)
-        
-        # Create the prompt
-        prompt = """You are an Instagram caption specialist.
-Analyze this image and generate 3 creative Instagram captions with relevant hashtags.
 
-Format each option as:
+        user_text = prompt.strip() if prompt else "Handcrafted artisan product"
 
-OPTION 1: [engaging caption]
-Hashtags: #tag1 #tag2 #tag3
+        prompt_text = f"""
+You are an Instagram caption specialist.
 
-OPTION 2: [engaging caption]
-Hashtags: #tag1 #tag2 #tag3
+User description: "{user_text}"
 
-OPTION 3: [engaging caption]
-Hashtags: #tag1 #tag2 #tag3
+Analyze this image + description and generate 3-5 Instagram captions with hashtags.
 """
 
-        # Use the correct Gemini API for vision
         model = genai.GenerativeModel('gemini-2.0-flash-exp')
-        response = model.generate_content([prompt, img])
-        
-        # Extract and parse captions
+        response = model.generate_content([prompt_text, img])
         caption_text = response.text
         captions = [opt.strip() for opt in caption_text.split("\n\n") if opt.strip()][:3]
-        
         return {"captions": captions}
-        
+
     except Exception as e:
         return {"error": str(e), "captions": []}
 
@@ -64,7 +44,7 @@ caption_tool = FunctionTool(func=generate_captions)
 caption_generator_agent = Agent(
     name="CaptionGeneratorAgent",
     model="gemini-2.0-flash-exp",
-    instruction="You generate Instagram captions from images. When given an image path, use the generate_captions tool to create 3 caption options.",
-    description="Generates captions for uploaded images using Gemini vision.",
+    instruction="Use image + user text to generate captions.",
+    description="Generates captions for artisan products using Gemini Vision.",
     tools=[caption_tool],
 )

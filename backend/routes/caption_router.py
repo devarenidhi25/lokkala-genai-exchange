@@ -1,6 +1,6 @@
 import os
 import tempfile
-from fastapi import APIRouter, UploadFile, HTTPException
+from fastapi import APIRouter, UploadFile, Form, HTTPException
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
@@ -20,17 +20,18 @@ runner = Runner(
 
 
 @router.post("/caption")
-async def generate_caption(file: UploadFile):
+async def generate_caption(
+    file: UploadFile,
+    prompt: str = Form(None)  # ✅ receive prompt text from frontend
+):
     if not file:
         raise HTTPException(status_code=400, detail="No file uploaded")
 
-    # Validate file type
     if not file.content_type.startswith('image/'):
         raise HTTPException(status_code=400, detail="File must be an image")
 
     temp_path = None
     try:
-        # Save uploaded file temporarily
         filename = file.filename or "upload.jpg"
         ext = os.path.splitext(filename)[1] or ".jpg"
 
@@ -39,7 +40,9 @@ async def generate_caption(file: UploadFile):
             temp_file.write(content)
             temp_path = temp_file.name
 
-        # Create unique session ID
+        # ✅ Default prompt if user didn't type anything
+        product_text = prompt.strip() if prompt else "Handmade artisan item"
+
         session_id = f"session_{os.urandom(8).hex()}"
         await session_service.create_session(
             app_name=APP_NAME,
@@ -47,21 +50,28 @@ async def generate_caption(file: UploadFile):
             session_id=session_id
         )
 
-        # 🪄 Improved Prompt for Digital Promotion
+        # ✅ Updated prompt: image + text description used
         message_text = f"""
-        You are a professional social media marketer and copywriter.
+You are a professional social media marketer.
 
-        Generate 3 short, emoji-rich, Instagram-ready captions for a handmade or artisan product 
-        shown in the image located at: {temp_path}.
+Generate 3 creative Instagram captions for a handmade/artisan product.
 
-        ✨ Guidelines:
-        - Make captions under 200 characters each.
-        - Use 3–5 well-placed emojis for visual rhythm.
-        - Use a warm, lifestyle or storytelling tone (not too poetic).
-        - Include a light call-to-action (e.g., “Tap ❤️ if you love handmade art!” or “Which one’s your fave?”).
-        - End each caption with 3–7 relevant, trending hashtags (short and aesthetic).
-        - Each caption should be clearly separated by a blank line.
-        """
+🧾 Product description (user wrote):
+"{product_text}"
+
+📸 Product image:
+{temp_path}
+
+✨ Requirements:
+- 3-5 captions, separated by blank line
+- Under 200 characters each
+- Natural, emotional tone
+- 3–5 relevant emojis
+- Add 3–7 trending, aesthetic hashtags
+- Include soft CTA like “Tap ❤️ if you love handmade!”
+- Do NOT mention "handmade" or "artisan" in every caption
+- Write caption in whichever language the user provided the description in
+"""
 
         message = types.Content(
             role="user",
@@ -70,7 +80,6 @@ async def generate_caption(file: UploadFile):
 
         captions = []
 
-        # Run agent
         async for event in runner.run_async(
             user_id=USER_ID,
             session_id=session_id,
@@ -78,7 +87,25 @@ async def generate_caption(file: UploadFile):
         ):
             if event.is_final_response():
                 response_text = event.content.parts[0].text
-                captions = [opt.strip() for opt in response_text.split("\n\n") if opt.strip()][:3]
+                response_text = event.content.parts[0].text.strip()
+
+                # Remove any accidental model intro lines
+                blocked = ["here are", "caption", "example", ":"]
+                clean_lines = []
+                for line in response_text.split("\n"):
+                    if not any(b in line.lower() for b in blocked):
+                        clean_lines.append(line)
+                clean_text = "\n".join(clean_lines).strip()
+
+                # Split captions
+                captions = [c.strip() for c in clean_text.split("\n\n") if len(c.strip()) > 5]
+
+                # Fallback if model returned one caption per line
+                if len(captions) < 3:
+                    captions = [c.strip() for c in clean_text.split("\n") if len(c.strip()) > 5]
+
+                # Return max 5 captions
+                captions = captions[:5]
 
         if not captions:
             raise HTTPException(status_code=500, detail="Failed to generate captions")
@@ -86,11 +113,11 @@ async def generate_caption(file: UploadFile):
         return {
             "captions": captions,
             "status": "success",
-            "style": "short-emoji-lifestyle"
+            "style": "image+text"
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error processing: {str(e)}")
 
     finally:
         if temp_path and os.path.exists(temp_path):
