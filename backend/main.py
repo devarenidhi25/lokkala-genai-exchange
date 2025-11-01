@@ -5,6 +5,7 @@ from routes.insta_router import router as instagram_router
 from routes.translator_router import router as translator_router
 from routes.catalog_router import router as catalog_router
 from routes.translationAgent_router import router as translation_agent_router
+from routes.analytics_router import router as analytics_router  # NEW
 from dotenv import load_dotenv
 import os
 
@@ -30,6 +31,7 @@ app.include_router(instagram_router)
 app.include_router(translator_router)
 app.include_router(catalog_router, prefix="/api/catalog", tags=["catalog"])
 app.include_router(translation_agent_router)
+app.include_router(analytics_router)  # NEW: Analytics endpoints
 
 @app.get("/")
 async def root():
@@ -40,7 +42,9 @@ async def health_check():
     return {
         "status": "healthy",
         "project_id": os.environ.get("GCLOUD_PROJECT", "Not set"),
-        "credentials_set": bool(os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"))
+        "credentials_set": bool(os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")),
+        "bigquery_enabled": bool(os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"))  # NEW
+
     }
 
 if __name__ == "__main__":
