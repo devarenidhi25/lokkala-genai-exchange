@@ -1,34 +1,51 @@
-aiofiles
-cloudinary
+# FastAPI & Server
 fastapi
-ffmpeg-python
-firebase-admin
-google-cloud-aiplatform
-google-cloud-bigquery>=3.11.0
+uvicorn
+python-multipart
+aiofiles
+slowapi>=0.1.8
+
+# Google Cloud & Firebase
 google-cloud-firestore>=2.11.0
+google-cloud-bigquery>=3.11.0
 google-cloud-storage>=2.10.0
-google-generativeai>=0.8.0
+google-cloud-aiplatform
 google-auth>=2.22.0
 google-auth-httplib2>=0.1.0
 google-auth-oauthlib>=1.0.0
-gtts
-hiredis>=2.2.0
-instagrapi
-numpy>=1.24.0
+firebase-admin
+
+# AI & LLM
+google-generativeai>=0.8.0
+# google-adk might be typo? keeping it
+google-adk>=0.2.0
 openai-whisper
+
+# ML & Data
+numpy>=1.24.0
 pandas>=2.0.0
-pillow
-playsound
-pydantic
-pydub
-python-dotenv>=1.0.1
-python-multipart
-redis>=4.5.0
-reportlab
-requests
 scipy
-slowapi>=0.1.8
+
+# Instagram & Media APIs
+instagrapi
+cloudinary
+pillow
+pydub
+ffmpeg-python
+
+# Audio & Speech
+gtts
 sounddevice
 SpeechRecognition
+playsound
+
+# Utilities
+python-dotenv>=1.0.1
+requests
+pydantic
+redis>=4.5.0
+hiredis>=2.2.0
+reportlab
+
+# Messaging
 twilio
-uvicorn
