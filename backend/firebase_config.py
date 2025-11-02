@@ -1,42 +1,45 @@
 import firebase_admin
 from firebase_admin import credentials, firestore, storage
 import os
-from pathlib import Path
+import json
 from dotenv import load_dotenv
 
+# Load env only in local
 load_dotenv()
 
-# Initialize Firebase Admin SDK
 def initialize_firebase():
-    if not firebase_admin._apps:
-        # Path to service account key
-        service_account_path = Path(__file__).parent / 'keys' / 'FirebaseServiceAccountKey.json'
+    if firebase_admin._apps:
+        return
+    
+    # Try Secret Manager first (Cloud Run)
+    firebase_key_json = os.getenv("FIREBASE_CREDENTIALS")
 
-        
-        if not service_account_path.exists():
+    if firebase_key_json:
+        try:
+            firebase_key_dict = json.loads(firebase_key_json)
+            cred = credentials.Certificate(firebase_key_dict)
+            print("✅ Firebase: Loaded from Secret Manager (Cloud Run mode)")
+        except Exception as e:
+            raise ValueError(f"❌ Secret Manager JSON invalid: {e}")
+    else:
+        # Local mode - load from keys folder
+        local_key_path = "keys/firebase-local.json"  # rename your file to this
+        if not os.path.exists(local_key_path):
             raise FileNotFoundError(
-                f"Service account key not found at {service_account_path}. "
-                "Please download it from Firebase Console and place it in the backend folder."
+                f"❌ Local Firebase key not found: {local_key_path}\n"
+                "Please download firebase key and place it there."
             )
-        
-        cred = credentials.Certificate(str(service_account_path))
-        
-        # Get storage bucket from environment variable
-        storage_bucket = os.getenv('FIREBASE_STORAGE_BUCKET')
-        
-        if not storage_bucket:
-            raise ValueError(
-                "FIREBASE_STORAGE_BUCKET not found in environment variables. "
-                "Please check your .env file."
-            )
-        
-        firebase_admin.initialize_app(cred, {
-            'storageBucket': storage_bucket
-        })
-        print("✅ Firebase initialized successfully")
-        print(f"📦 Storage bucket: {storage_bucket}")
+        cred = credentials.Certificate(local_key_path)
+        print("✅ Firebase: Loaded from local file mode")
 
-# Initialize on import
+    bucket_name = os.getenv("FIREBASE_STORAGE_BUCKET")
+    if not bucket_name:
+        raise ValueError("❌ Missing FIREBASE_STORAGE_BUCKET env variable")
+
+    firebase_admin.initialize_app(cred, {"storageBucket": bucket_name})
+    print(f"✅ Firebase initialized successfully (Bucket: {bucket_name})")
+
+
 initialize_firebase()
 
 # Export clients
