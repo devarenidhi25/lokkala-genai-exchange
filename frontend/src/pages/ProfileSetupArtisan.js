@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { getFirestore, doc, setDoc } from "firebase/firestore"
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage"
@@ -41,11 +41,24 @@ function ProfileSetupArtisan() {
 
   // Step 4
   const [whatsapp, setWhatsapp] = useState(true)
+
+  // Refs
+  const profileInput = useRef(null)
   
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u)
       setLoading(false)
+
+      // Check if user exists and get stored user data
+      if (u) {
+        const storedUser = AppStore.getUser()
+        // Redirect to customer setup if role doesn't match
+        if (storedUser && storedUser.role !== "artisan") {
+          console.log("Redirecting non-artisan user to correct setup page")
+          navigate("/profile-setup/customer", { replace: true })
+        }
+      }
     })
     return () => unsub()
   }, [])

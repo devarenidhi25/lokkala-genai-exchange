@@ -42,22 +42,27 @@ function SignUp() {
 
   // helper to route to profile setup
   function completeAuth(user) {
-    const r = role || (user?.role) || "customer"
+    // Explicitly determine the role from signup selection
+    const userRole = role // Use the role selected during signup
     const userData = {
       uid: user?.uid,
       email: user?.email || "",
       name: user?.displayName || name || "Guest",
-      role: r,
+      role: userRole, // Use the explicit role
+      profileSetupComplete: false // Add a flag to track profile setup status
     }
     AppStore.setUser(userData)
 
-    // go to profile setup page according to role
-    const route = r === "artisan" ? "/profile-setup/artisan" : "/profile-setup/customer"
-    navigate(route)
+    // Route to appropriate profile setup based on selected role
+    const setupRoute = userRole === "artisan" ? "/profile-setup/artisan" : "/profile-setup/customer"
+    navigate(setupRoute, { replace: true }) // Use replace to prevent back navigation to signup
 
     try {
-      window.location.reload()
-    } catch (e) {}
+      // No need to reload the page, the navigation should be sufficient
+      // window.location.reload()
+    } catch (e) {
+      console.error("Navigation error:", e)
+    }
   }
 
   // Google

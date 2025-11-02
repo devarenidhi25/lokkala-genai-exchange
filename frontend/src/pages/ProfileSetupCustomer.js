@@ -23,11 +23,21 @@ function ProfileSetupCustomer() {
   const [budget, setBudget] = useState("Medium")
   const [purpose, setPurpose] = useState("Personal Purchase")
 
-  // listen for firebase auth state
+  // listen for firebase auth state and validate role
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u)
       setLoading(false)
+
+      // Check if user exists and get stored user data
+      if (u) {
+        const storedUser = AppStore.getUser()
+        // Redirect to artisan setup if role doesn't match
+        if (storedUser && storedUser.role !== "customer") {
+          console.log("Redirecting non-customer user to correct setup page")
+          navigate("/profile-setup/artisan", { replace: true })
+        }
+      }
     })
     return () => unsub()
   }, [])
