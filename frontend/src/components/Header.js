@@ -60,12 +60,14 @@ function Header({ user }) {
               <button
                 className="btn"
                 onClick={() => navigate("/signin")}
+                title="Sign in to your existing account to access your profile"
               >
                 Sign in
               </button>
               <button
                 className="btn btn-primary"
                 onClick={() => navigate("/signup")}
+                title="Create a new account as an artisan or customer"
               >
                 Sign up
               </button>

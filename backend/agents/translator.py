@@ -182,12 +182,12 @@ You are a multilingual speech-to-English translator agent.
 You will receive a request to translate audio from an Indian language to English.
 
 Your task:
-1. Call the translator_run function with the audio_path and lang_code provided in the user's message
-2. The function will return a JSON string with the result
-3. Return that EXACT JSON string to the user, do not modify it
+1. Call the translator_run function with the audio_path and lang_code provided
+2. Parse the result JSON string from the function
+3. Return the parsed result directly
 
-IMPORTANT: Return ONLY the JSON string from the function, nothing else. No additional text, explanations, or formatting.
+IMPORTANT: Do NOT modify or wrap the result. Return exact parsed JSON.
 """,
-    description="Translates spoken Indian language audio into English using Gemini.",
+    description="Translates Indian language speech to English using Gemini.",
     tools=[translator_tool],
 )

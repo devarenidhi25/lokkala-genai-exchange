@@ -131,6 +131,7 @@ function SocialAgent() {
           className="btn btn-success"
           onClick={handlePost}
           disabled={loading || !selectedFile}
+          title="AI will analyze your image, generate a relevant caption, and post it to Instagram"
         >
           {loading ? (
             <>
@@ -187,6 +188,7 @@ function SocialAgent() {
                 <button 
                   className="btn btn-primary" 
                   onClick={() => shareWhatsApp(result.caption)}
+                  title="Share this post with your customers on WhatsApp"
                 >
                   📱 Share on WhatsApp
                 </button>
@@ -197,6 +199,7 @@ function SocialAgent() {
                     navigator.clipboard.writeText(result.caption)
                     alert("✅ Caption copied to clipboard!")
                   }}
+                  title="Copy the generated caption to use on other platforms"
                 >
                   📋 Copy Caption
                 </button>

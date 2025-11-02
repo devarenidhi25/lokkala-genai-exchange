@@ -236,16 +236,22 @@ function ProfileSetupArtisan() {
                   />
                 </div>
               </div>
-              <div className="mt-3">
-                <label className="label">Profile Photo</label>
-                <input className="input" type="file" accept="image/*" onChange={onUploadProfile} />
-                {profilePhoto && (
-                  <img
-                    src={profilePhoto}
-                    alt="Profile"
-                    style={{ width: 100, height: 100, borderRadius: 12, marginTop: 8, objectFit: "cover" }}
-                  />
-                )}
+                            <div>
+                <label className="label" title="A clear profile photo helps build trust with customers">Profile Photo</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={onUploadProfile}
+                  style={{ display: "none" }}
+                  ref={profileInput}
+                />
+                <button
+                  className="btn"
+                  onClick={() => profileInput.current?.click()}
+                  title="Upload a professional photo of yourself or your workshop"
+                >
+                  Choose Photo
+                </button>
               </div>
             </>
           )}
@@ -254,8 +260,13 @@ function ProfileSetupArtisan() {
             <>
               <div className="row mt-3">
                 <div>
-                  <label className="label">Type of Craft</label>
-                  <select className="select" value={craftType} onChange={(e) => setCraftType(e.target.value)}>
+                  <label className="label" title="Select your primary craft category">Type of Craft</label>
+                  <select 
+                    className="select" 
+                    value={craftType} 
+                    onChange={(e) => setCraftType(e.target.value)}
+                    title="Choose the main type of craft you specialize in"
+                  >
                     <option value="pottery">Pottery</option>
                     <option value="handloom">Handloom</option>
                     <option value="painting">Painting</option>
@@ -276,13 +287,14 @@ function ProfileSetupArtisan() {
                 </div>
               </div>
               <div className="mt-3">
-                <label className="label">Story of the Craft (short)</label>
+                  <label className="label" title="Share the history and significance of your craft">Story of the Craft (short)</label>
                 <textarea
                   className="textarea"
                   rows="4"
                   value={story}
                   onChange={(e) => setStory(e.target.value)}
                   placeholder="Share your inspiration..."
+                  title="Tell customers about your craft's history, your inspiration, and what makes your work unique"
                 ></textarea>
                 <div className="helper mt-2">
                   Voice input option can be added; AI can turn it into a bio later. (TODO)

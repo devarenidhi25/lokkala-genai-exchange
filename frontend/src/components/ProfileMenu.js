@@ -47,6 +47,7 @@ function ProfileMenu({ user, onEditProfile, onLogout }) {
             className="btn mt-3"
             style={{ width: "100%" }}
             onClick={handleViewProfile}
+            title="View your complete profile information"
           >
             View Profile
           </button>
@@ -58,6 +59,7 @@ function ProfileMenu({ user, onEditProfile, onLogout }) {
                 setOpen(false)
                 onEditProfile?.()
               }}
+              title="Update your profile information and settings"
             >
               Edit profile
             </button>
@@ -67,6 +69,7 @@ function ProfileMenu({ user, onEditProfile, onLogout }) {
                 setOpen(false)
                 onLogout?.()
               }}
+              title="Sign out of your account"
             >
               Logout
             </button>

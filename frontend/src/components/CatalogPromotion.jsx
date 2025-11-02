@@ -241,6 +241,19 @@ function CatalogPromotion({ artisanId, artisanName }) {
 
         <div className="card-body">
           {/* Current Catalog Display */}
+          {!currentCatalog && (
+            <div className="card" style={{ 
+              background: "rgba(59, 130, 246, 0.05)", 
+              border: "1px solid rgba(59, 130, 246, 0.2)",
+              marginBottom: "1.5rem",
+              padding: "1rem",
+              textAlign: "center"
+            }}>
+              <p style={{ margin: 0, color: "var(--text-muted)" }}>
+                Generate a catalog to start sharing with your customers!
+              </p>
+            </div>
+          )}
           {currentCatalog && (
             <div className="card" style={{ 
               background: "rgba(139, 92, 246, 0.05)", 
@@ -332,34 +345,41 @@ function CatalogPromotion({ artisanId, artisanName }) {
                   Generate Catalog
                 </>
               )}
+              <span className="tooltip">Generate a new {catalogType.toUpperCase()} catalog with your latest products</span>
             </button>
 
-            <button
-              className="btn btn-success"
-              onClick={() => setShowShareModal(true)}
-              disabled={!currentCatalog || sharingWhatsApp}
-              style={{ display: "flex", alignItems: "center", gap: "0.5rem", justifyContent: "center" }}
-            >
-              <Send style={{ width: "18px", height: "18px" }} />
-              Share on WhatsApp
-            </button>
+            {currentCatalog && (
+              <>
+                <button
+                  className="btn btn-success"
+                  onClick={() => setShowShareModal(true)}
+                  disabled={sharingWhatsApp}
+                  style={{ display: "flex", alignItems: "center", gap: "0.5rem", justifyContent: "center" }}
+                >
+                  <Send style={{ width: "18px", height: "18px" }} />
+                  Share on WhatsApp
+                  <span className="tooltip">Share your catalog with a customer via WhatsApp</span>
+                </button>
 
-            <button
-              className="btn"
-              onClick={() => setShowBulkShare(true)}
-              disabled={!currentCatalog || sharingWhatsApp}
-              style={{ 
-                display: "flex", 
-                alignItems: "center", 
-                gap: "0.5rem", 
-                justifyContent: "center",
-                background: "var(--accent-green)",
-                color: "white"
-              }}
-            >
-              <Share2 style={{ width: "18px", height: "18px" }} />
-              Bulk Share
-            </button>
+                <button
+                  className="btn"
+                  onClick={() => setShowBulkShare(true)}
+                  disabled={sharingWhatsApp}
+                  style={{ 
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: "0.5rem", 
+                    justifyContent: "center",
+                    background: "var(--accent-green)",
+                    color: "white"
+                  }}
+                >
+                  <Share2 style={{ width: "18px", height: "18px" }} />
+                  Bulk Share
+                  <span className="tooltip">Share your catalog with multiple customers at once</span>
+                </button>
+              </>
+            )}
           </div>
 
           {/* Share History */}
@@ -547,6 +567,39 @@ function CatalogPromotion({ artisanId, artisanName }) {
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+        
+        .btn {
+          position: relative;
+          transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .tooltip {
+          position: absolute;
+          bottom: 100%;
+          left: 50%;
+          transform: translateX(-50%);
+          padding: 0.5rem;
+          background: rgba(0, 0, 0, 0.8);
+          color: white;
+          border-radius: 4px;
+          font-size: 0.85rem;
+          white-space: nowrap;
+          opacity: 0;
+          visibility: hidden;
+          transition: opacity 0.2s, visibility 0.2s;
+          margin-bottom: 0.5rem;
+          z-index: 1000;
+        }
+
+        .btn:hover .tooltip {
+          opacity: 1;
+          visibility: visible;
         }
       `}</style>
     </div>

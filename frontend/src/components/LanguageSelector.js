@@ -21,6 +21,7 @@ export default function LanguageSelector() {
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label="Change language"
+        title="Choose your preferred language"
         style={{
           background: "transparent",
           border: "none",

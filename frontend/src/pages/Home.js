@@ -31,12 +31,14 @@ function HomePage() {
               <Link
                 to="/signup"
                 className="btn btn-primary animate-bounce-in no-underline transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
+                title="Sign up as an artisan to showcase your crafts, use AI tools, and grow your business"
               >
                 Continue as Local Artisan
               </Link>
               <Link
                 to="/signup"
                 className="btn animate-bounce-in no-underline transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
+                title="Sign up as a customer to discover and purchase authentic Indian handicrafts"
               >
                 Continue as Buyer / Customer
               </Link>

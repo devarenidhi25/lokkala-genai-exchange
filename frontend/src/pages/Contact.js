@@ -20,7 +20,7 @@ function ContactPage() {
             <textarea className="textarea" rows="5" placeholder="Type your message..."></textarea>
           </div>
           <div className="form-actions">
-            <button className="btn btn-primary">Send</button>
+            <button className="btn btn-primary" title="Send your message to our team">Send</button>
           </div>
         </div>
       </section>

@@ -343,12 +343,14 @@ function ArtisanDashboard() {
               <button
                 className="btn btn-secondary"
                 onClick={() => navigate("/caption-generator")}
+                title="Generate engaging captions for your product photos using AI"
               >
                 📝 Caption Generator
               </button>
               <button
                 className="btn btn-success"
                 onClick={() => navigate("/social-agent")}
+                title="Get AI assistance for managing your social media presence and engagement"
               >
                 📲 Social Media Agent
               </button>
@@ -373,6 +375,7 @@ function ArtisanDashboard() {
               <button
                 className="btn btn-primary"
                 onClick={() => setShowUploadModal(true)}
+                title="Add new products to your catalog with photos and details"
                 style={{ display: "flex", alignItems: "center", gap: "0.5rem", justifyContent: "center" }}
               >
                 <Upload style={{ width: "20px", height: "20px" }} />

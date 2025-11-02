@@ -103,6 +103,7 @@ window.CustomerProfileWizard = function CustomerProfileWizard() {
                   className="select"
                   value={data.budget}
                   onChange={(e) => setData({ ...data, budget: e.target.value })}
+                  title="Select your preferred price range for handicraft products"
                 >
                   <option>Low</option>
                   <option>Medium</option>

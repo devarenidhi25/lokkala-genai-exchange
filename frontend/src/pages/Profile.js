@@ -134,6 +134,7 @@ function Profile() {
                   <button
                     className="btn btn-primary"
                     onClick={() => navigate("/artisan")}
+                    title="Access your artisan tools, manage products, and view analytics"
                     style={{
                       marginTop: "1rem",
                       background: "white",

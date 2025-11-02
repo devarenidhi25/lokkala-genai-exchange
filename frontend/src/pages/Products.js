@@ -211,7 +211,7 @@ function ProductsPage() {
         </section>
       )}
 
-      <section style={styles.top}>
+      <section style={styles.top} title="Use filters to find exactly what you're looking for">
         <SearchFilters products={allProducts} onChange={setFiltered} />
       </section>
 
